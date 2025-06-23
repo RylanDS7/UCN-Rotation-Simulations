@@ -25,7 +25,7 @@ class UCNspinRotSim:
         Args:
             v (float): speed of UCNs
             gamma (float): gyromagnetic ratio
-            Bfield (np.array[float]): B field everywhere in space, of the form 
+            Bfield (np.array[np.array[float]], np.array[np.array[float]]): B field everywhere in space, of the form 
                                 [[pos_x, pos_y, pos_z], [B_x, B_y, B_z]]
             D (float): diameter of the simulation region
             yo (float): length of the simulation region
@@ -75,6 +75,130 @@ class UCNspinRotSim:
         plt.show()
 
 
+    def generate_neutron(self):
+        """function to init neutron position and velocity
+
+        Returns:
+            [np.array[float], np.array[float] : position and velocities of generated neutron
+                                                [[pos_x, pos_y, pos_z], [vel_x, vel_y, vel_z]]
+
+        """
+
+        # Randomly generate a position on the circular source
+        r = (self.D / 2) * np.sqrt(np.random.uniform())
+        theta = np.random.uniform(0, 2 * np.pi)
+        x = r * np.cos(theta)
+        z = r * np.sin(theta)
+        y = self.yo  # Start at one end of the tube
+        
+        # Randomly generate a velocity direction
+        phi = np.random.uniform(0, 2 * np.pi)
+        cos_theta = np.random.uniform(0.6, 1)  # Ensure longitudinal component is >60%
+        sin_theta = np.sqrt(1 - cos_theta**2)
+        vx = self.v * sin_theta * np.cos(phi)
+        vy = self.v * cos_theta
+        vz = self.v * sin_theta * np.sin(phi)
+        
+        if vy > 0:  # Ensure positive y-direction
+            return np.array([x, y, z]), np.array([vx, vy, vz])
+        else:
+            return self.generate_neutron()
+        
+    
+    def reflect(self, position, velocity):
+        """Function to calculate specular reflection
+
+        Args:
+            position (np.array[float]): current position of particle, [pos_x, pos_y, pos_z]
+            velocity (np.array[float]): current velocity of particle, [vel_x, vel_y, vel_z]
+
+        Returns:
+            np.array[float] : new velocity of reflected particle [vel_x, vel_y, vel_z]
+
+        """
+        x, y, z = position
+        vx, vy, vz = velocity
+        # Normal to the cylindrical wall
+        normal = np.array([x, 0, z]) / np.sqrt(x**2 + z**2)
+        # Decompose velocity
+        v_parallel = velocity - np.dot(velocity, normal) * normal
+        v_perpendicular = np.dot(velocity, normal) * normal
+        # Invert the perpendicular component for specular reflection
+        new_velocity = v_parallel - v_perpendicular
+        return new_velocity
+    
+
+    def simulate_path(self):
+        """function to simulate the path of one neutron
+
+        Returns:
+            np.array[np.array[float]] : path of simulated neutron [path_x, path_y, path_z]
+
+        """
+        position, velocity = self.generate_neutron()
+        path_x, path_y, path_z = [position[0]], [position[1]], [position[2]]
+        dt = 0.001
+
+
+        while self.yo <= position[1] <= 0:  # Keep particle within tube bounds
+            # Check if the particle is still within the tube before updating
+            if position[1] + velocity[1] * dt > 0:
+                # If particle would exceed tube length, stop the simulation
+                break
+            
+            # Update position
+            position += velocity * dt
+
+            # Check for wall collision
+            distance_to_axis = np.sqrt(position[0]**2 + position[2]**2)
+            if distance_to_axis > (self.D / 2):
+                # Reflect the velocity
+                velocity = self.reflect(position, velocity)
+                # Correct position to ensure it stays inside the tube
+                correction_factor = (self.D / 2) / distance_to_axis
+                position[0] *= correction_factor
+                position[2] *= correction_factor
+
+            # Record the position
+            path_x.append(position[0])
+            path_y.append(position[1])
+            path_z.append(position[2])
+
+        return np.array([path_x, path_y, path_z])
+    
+
+    def plot_path(self, path):
+        """3D plots a neutron path
+
+        Args:
+            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+
+        """
+
+        path_x = path[0]
+        path_y = path[1]
+        path_z = path[2]
+
+        fig = plt.figure(figsize=(12, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(path_x, path_y, path_z, alpha=0.7)
+
+        # Cylinder visualization
+        theta = np.linspace(0, 2 * np.pi, 100)
+        z = np.linspace(yo, 0, 100)
+        theta, z = np.meshgrid(theta, z)
+        x_cylinder = (self.D / 2) * np.cos(theta)
+        y_cylinder = z
+        z_cylinder = (self.D / 2) * np.sin(theta)
+
+        ax.plot_surface(x_cylinder, y_cylinder, z_cylinder, color='cyan', alpha=0.1)
+
+        # Labels and show plot
+        ax.set_xlabel("X (m)")
+        ax.set_ylabel("Y (m)")
+        ax.set_zlabel("Z (m)")
+        ax.set_title("Neutron Paths in a Cylindrical Tube")
+        plt.show()
 
 
 
@@ -112,9 +236,9 @@ def B_field(y):
 # Generate field
 pos = []
 B = []
-x_vals = np.linspace(0, 0.25, 10)
-y_vals = np.linspace(-0.5, 0.0, 50)
-z_vals = np.linspace(0, 0.25, 10)
+x_vals = np.linspace(-0.05, 0.05, 10)
+y_vals = np.linspace(-1, 0.0, 50)
+z_vals = np.linspace(-0.05, 0.05, 10)
 
 for x in x_vals:
     for y in y_vals:
@@ -122,7 +246,7 @@ for x in x_vals:
             pos.append([x, y, z])
             B.append(B_field(y))
 
-sim = UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], 0.25, yo)
+sim = UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], 0.095, yo)
 
-sim.plotField()
+sim.plot_path(sim.simulate_path())
 
