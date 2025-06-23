@@ -1,7 +1,7 @@
 """
 Simulates rotation of the spin vector of ultracold neutrons by an external guiding field
 
-Code by Libertad Barron Palos:
+Code by Libertad Barron Palos
 
 """
 
