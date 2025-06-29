@@ -56,7 +56,7 @@ class UCNspinRotSim:
         return self.Bfield[1][idx]
     
 
-    def plotField(self):
+    def plot_Field(self):
         """3D plots the vector field self.Bfield
 
         """
@@ -89,7 +89,7 @@ class UCNspinRotSim:
         theta = np.random.uniform(0, 2 * np.pi)
         x = r * np.cos(theta)
         z = r * np.sin(theta)
-        y = self.yo  # Start at one end of the tube
+        y = self.yo - 0.1 # Start at one end of the tube
         
         # Randomly generate a velocity direction
         phi = np.random.uniform(0, 2 * np.pi)
@@ -140,7 +140,7 @@ class UCNspinRotSim:
         dt = 0.001
 
 
-        while self.yo <= position[1] <= 0:  # Keep particle within tube bounds
+        while self.yo - 0.1 <= position[1] <= 0:  # Keep particle within tube bounds
             # Check if the particle is still within the tube before updating
             if position[1] + velocity[1] * dt > 0:
                 # If particle would exceed tube length, stop the simulation
@@ -182,10 +182,13 @@ class UCNspinRotSim:
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(path_x, path_y, path_z, alpha=0.7)
+        
+        spin = self.solve_spins(np.array([0, 1, 0]), path)
+        ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
 
         # Cylinder visualization
         theta = np.linspace(0, 2 * np.pi, 100)
-        z = np.linspace(yo, 0, 100)
+        z = np.linspace(yo-0.1, 0, 100)
         theta, z = np.meshgrid(theta, z)
         x_cylinder = (self.D / 2) * np.cos(theta)
         y_cylinder = z
@@ -198,9 +201,81 @@ class UCNspinRotSim:
         ax.set_ylabel("Y (m)")
         ax.set_zlabel("Z (m)")
         ax.set_title("Neutron Paths in a Cylindrical Tube")
+
+        # Plot the field and spin graphs
+        _, axs = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
+
+        # First plot for magnetic field components
+        # axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,0]) * 1e6, label="Bx", color="blue")  # Convert to µT
+        axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,1]) * 1e6, label="By", color="orange")  # Convert to µT
+        axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,2]) * 1e6, label="Bz", color="green")  # Convert to µT
+        axs[0].set_ylabel("Magnetic Field (μT)")
+        axs[0].legend()
+        axs[0].grid(True, which='both', axis='both')
+
+        # Second plot for spin components
+        axs[1].plot(path[1], spin[0], label="Sx", color="red")
+        axs[1].plot(path[1], spin[1], label="Sy", color="blue")
+        axs[1].plot(path[1], spin[2], label="Sz", color="green")
+        axs[1].set_ylabel("Spin Components")
+        axs[1].legend()
+        axs[1].grid(True, which='both', axis='both')
+
         plt.show()
 
 
+    def bloch_eq(self, pos, S):
+        """The bloch equation
+
+        Args:
+            pos (float): current position
+            S (np.array[float]): current spin vector [S_x, S_y, S_z]
+
+        Returns:
+            float : the result of the bloch equation as ds_dr
+
+        """
+        B = self.getField(pos)
+        dS = self.gamma * np.cross(S, B)
+        return dS / self.v  # Normalize by velocity since dy = v * dt
+    
+    def solve_spins(self, S0, path):
+        """Solves the spin evolution for a given neutron path
+
+        Args:
+            S0 (np.array[float]): initial spin vector
+            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+
+        Returns:
+            np.array[np.array[float]] : path evolution of spin vector [spin_x, spin_y, spin_z]
+
+        """
+        # Interpolation function for position along arc length
+        def interpolate_position(s):
+            return np.array([
+                np.interp(s, arc_lengths, path[0]),
+                np.interp(s, arc_lengths, path[1]),
+                np.interp(s, arc_lengths, path[2])
+            ])
+        
+        # ODE: dS/ds = bloch_eq(r(s), S)
+        def dS_ds(s, S):
+            r = interpolate_position(s)
+            return self.bloch_eq(r, S)
+
+        # Parameterize path by arc length
+        arc_lengths = np.zeros(path.shape[1])
+        for i in range(1, path.shape[1]):
+            arc_lengths[i] = arc_lengths[i-1] + np.linalg.norm(path[:, i] - path[:, i-1])
+
+        # Solve ivp
+        print("Solving")
+        solution = solve_ivp(dS_ds, [arc_lengths[0], arc_lengths[-1]], S0, t_eval=arc_lengths, method='RK45')
+        print("Done solving")
+
+        return np.array(solution.y)
+
+    
 
 # Constants
 v = 7  # Speed of neutrons in m/s
@@ -236,12 +311,13 @@ def B_field(y):
 # Generate field
 pos = []
 B = []
-x_vals = np.linspace(-0.05, 0.05, 10)
-y_vals = np.linspace(-1, 0.0, 50)
-z_vals = np.linspace(-0.05, 0.05, 10)
+x_vals = np.linspace(-0.05, 0.05, 50)
+y_vals = np.linspace(yo - 0.1, 0.0, 500)
+z_vals = np.linspace(-0.05, 0.05, 50)
 
-for x in x_vals:
-    for y in y_vals:
+for y in y_vals:
+    print(f"Doing layer {y}")
+    for x in x_vals:
         for z in z_vals:
             pos.append([x, y, z])
             B.append(B_field(y))
@@ -249,4 +325,3 @@ for x in x_vals:
 sim = UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], 0.095, yo)
 
 sim.plot_path(sim.simulate_path())
-
