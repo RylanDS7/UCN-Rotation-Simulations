@@ -162,7 +162,7 @@ axs[2].text(0.95, 0.95, f"$\\kappa_{{min}} = {kappa_min:.3f}$", horizontalalignm
 plt.tight_layout()
 
 # Save the plot as a PDF
-plt.savefig("plot_output.pdf", dpi=300)  # Save as PDF with 300 DPI resolution
+# plt.savefig("plot_output.pdf", dpi=300)  # Save as PDF with 300 DPI resolution
 
 # Show the plot
 plt.show()

@@ -10,7 +10,6 @@ Adapted from code by Libertad Barron Palos
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-import argparse
 
 class UCNspinRotSim:
     """Class for running UCN spin polarization simulations
@@ -89,7 +88,7 @@ class UCNspinRotSim:
         theta = np.random.uniform(0, 2 * np.pi)
         x = r * np.cos(theta)
         z = r * np.sin(theta)
-        y = self.yo - 0.1 # Start at one end of the tube
+        y = self.yo # Start at one end of the tube
         
         # Randomly generate a velocity direction
         phi = np.random.uniform(0, 2 * np.pi)
@@ -140,7 +139,7 @@ class UCNspinRotSim:
         dt = 0.001
 
 
-        while self.yo - 0.1 <= position[1] <= 0:  # Keep particle within tube bounds
+        while self.yo <= position[1] <= 0:  # Keep particle within tube bounds
             # Check if the particle is still within the tube before updating
             if position[1] + velocity[1] * dt > 0:
                 # If particle would exceed tube length, stop the simulation
@@ -168,7 +167,7 @@ class UCNspinRotSim:
     
 
     def plot_path(self, path):
-        """3D plots a neutron path
+        """3D plots a neutron path and the spin changes over the path
 
         Args:
             path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
@@ -188,7 +187,7 @@ class UCNspinRotSim:
 
         # Cylinder visualization
         theta = np.linspace(0, 2 * np.pi, 100)
-        z = np.linspace(yo-0.1, 0, 100)
+        z = np.linspace(self.yo, 0, 100)
         theta, z = np.meshgrid(theta, z)
         x_cylinder = (self.D / 2) * np.cos(theta)
         y_cylinder = z
@@ -206,7 +205,7 @@ class UCNspinRotSim:
         _, axs = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
 
         # First plot for magnetic field components
-        # axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,0]) * 1e6, label="Bx", color="blue")  # Convert to µT
+        axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,0]) * 1e6, label="Bx", color="blue")  # Convert to µT
         axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,1]) * 1e6, label="By", color="orange")  # Convert to µT
         axs[0].plot(np.array(self.Bfield[0][:,1]), np.array(self.Bfield[1][:,2]) * 1e6, label="Bz", color="green")  # Convert to µT
         axs[0].set_ylabel("Magnetic Field (μT)")
@@ -277,51 +276,55 @@ class UCNspinRotSim:
 
     
 
-# Constants
-v = 7  # Speed of neutrons in m/s
-gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
-Bo = 1e-6  # Constant magnetic field in T in the z direction
-A = 0.5e-4
-L = 0.05
-yo = -0.4
 
-# Example field
-def B_field(y):
-    r = -(yo + L) / 2
-    Ao = A - Bo
-    # Default magnetic field values in case y does not fall into any condition
-    Bx, By, Bz = 0, 0, 0
 
-    if y < yo:  # Condition for y < yo
-        By = A
-        Bx = 0
-        Bz = 0
-    elif yo <= y <= yo + L:  # Condition for yo <= y <= yo + L
-        By = A * np.cos(np.pi * (y - yo) / (2 * L))
-        Bz = A * np.sin(np.pi * (y - yo) / (2 * L))
-    elif y > yo + L:  # Condition for y > yo + L
-        # For y > yo + L, you should define Bx, By, Bz
-        # Assuming no field in the x-direction and using the provided formula for Bz
-        By = 0
-        Bz = ((Ao / (np.pi * r)) * (r * np.arccos(1 + (y / r)) - np.sqrt(-y * (2 * r + y))) + Bo)
-        Bx = 0  # No field in the x-direction for this region
+# Test case field from KappaTest4
 
-    return np.array([Bx, By, Bz])
+# # Constants
+# v = 7  # Speed of neutrons in m/s
+# gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
+# Bo = 1e-6  # Constant magnetic field in T in the z direction
+# A = 0.5e-4
+# L = 0.05
+# yo = -0.4
 
-# Generate field
-pos = []
-B = []
-x_vals = np.linspace(-0.05, 0.05, 50)
-y_vals = np.linspace(yo - 0.1, 0.0, 500)
-z_vals = np.linspace(-0.05, 0.05, 50)
+# # Example field
+# def B_field(y):
+#     r = -(yo + L) / 2
+#     Ao = A - Bo
+#     # Default magnetic field values in case y does not fall into any condition
+#     Bx, By, Bz = 0, 0, 0
 
-for y in y_vals:
-    print(f"Doing layer {y}")
-    for x in x_vals:
-        for z in z_vals:
-            pos.append([x, y, z])
-            B.append(B_field(y))
+#     if y < yo:  # Condition for y < yo
+#         By = A
+#         Bx = 0
+#         Bz = 0
+#     elif yo <= y <= yo + L:  # Condition for yo <= y <= yo + L
+#         By = A * np.cos(np.pi * (y - yo) / (2 * L))
+#         Bz = A * np.sin(np.pi * (y - yo) / (2 * L))
+#     elif y > yo + L:  # Condition for y > yo + L
+#         # For y > yo + L, you should define Bx, By, Bz
+#         # Assuming no field in the x-direction and using the provided formula for Bz
+#         By = 0
+#         Bz = ((Ao / (np.pi * r)) * (r * np.arccos(1 + (y / r)) - np.sqrt(-y * (2 * r + y))) + Bo)
+#         Bx = 0  # No field in the x-direction for this region
 
-sim = UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], 0.095, yo)
+#     return np.array([Bx, By, Bz])
 
-sim.plot_path(sim.simulate_path())
+# # Generate field
+# pos = []
+# B = []
+# x_vals = np.linspace(-0.05, 0.05, 50)
+# y_vals = np.linspace(yo - 0.1, 0.0, 500)
+# z_vals = np.linspace(-0.05, 0.05, 50)
+
+# for y in y_vals:
+#     print(f"Doing layer {y}")
+#     for x in x_vals:
+#         for z in z_vals:
+#             pos.append([x, y, z])
+#             B.append(B_field(y))
+
+# sim = UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], 0.095, yo)
+
+# sim.plot_path(sim.simulate_path())
