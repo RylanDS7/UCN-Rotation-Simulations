@@ -10,6 +10,7 @@ Adapted from code by Libertad Barron Palos
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
+from scipy.interpolate import interp1d, RegularGridInterpolator
 from tqdm import tqdm
 
 class UCNspinRotSim:
@@ -38,22 +39,57 @@ class UCNspinRotSim:
         self.Bfield = Bfield
         self.D = D
         self.yo = yo
+        self.setup_interpolator()
 
-    
+
+    def setup_interpolator(self):
+        positions = self.Bfield[0]
+        Bvectors = self.Bfield[1]
+
+        x_unique = np.unique(positions[:, 0])
+        y_unique = np.unique(positions[:, 1])
+        z_unique = np.unique(positions[:, 2])
+
+        expected_size = len(x_unique) * len(y_unique) * len(z_unique)
+        assert positions.shape[0] == expected_size, "Data points do not form a complete grid"
+
+        dtype = [('x', float), ('y', float), ('z', float)]
+        structured_positions = np.array([tuple(pos) for pos in positions], dtype=dtype)
+        sorted_indices = np.argsort(structured_positions, order=['x', 'y', 'z'])
+
+        positions_sorted = positions[sorted_indices]
+        Bvectors_sorted = Bvectors[sorted_indices]
+
+        Bx = Bvectors_sorted[:, 0].reshape(len(x_unique), len(y_unique), len(z_unique))
+        By = Bvectors_sorted[:, 1].reshape(len(x_unique), len(y_unique), len(z_unique))
+        Bz = Bvectors_sorted[:, 2].reshape(len(x_unique), len(y_unique), len(z_unique))
+
+        from scipy.interpolate import RegularGridInterpolator
+        self.B_interp_x = RegularGridInterpolator((x_unique, y_unique, z_unique), Bx)
+        self.B_interp_y = RegularGridInterpolator((x_unique, y_unique, z_unique), By)
+        self.B_interp_z = RegularGridInterpolator((x_unique, y_unique, z_unique), Bz)
+
+
     def getField(self, pos):
-        """Retrieves mag field at specified position
+        Bx_val = self.B_interp_x(pos)
+        By_val = self.B_interp_y(pos)
+        Bz_val = self.B_interp_z(pos)
 
-        Args:
-            pos (np.array[float]): position to get field, [pos_x, pos_y, pos_z]
+        return np.array([Bx_val, By_val, Bz_val]).flatten()
 
-        Returns:
-            B (np.array[float]): B field components at point pos, [B_x, B_y, B_z]
-        """
+    # def getField(self, pos):
+    #     """Retrieves mag field at specified position
 
-        # find closest index for corresponding position
-        idx = np.argmin(np.linalg.norm(self.Bfield[0] - pos, axis=1))
+    #     Args:
+    #         pos (np.array[float]): position to get field, [pos_x, pos_y, pos_z]
 
-        return self.Bfield[1][idx]
+    #     Returns:
+    #         B (np.array[float]): B field components at point pos, [B_x, B_y, B_z]
+    #     """
+    #     B = self.B_interp(pos)
+    #     if B is None or np.any(np.isnan(B)):
+    #         B = np.zeros(3)  # fallback
+    #     return B
     
 
     def plot_Field(self):
@@ -105,7 +141,7 @@ class UCNspinRotSim:
         
         # Randomly generate a velocity direction
         phi = np.random.uniform(0, 2 * np.pi)
-        cos_theta = np.random.uniform(0.75, 1)  # Ensure longitudinal component is >75%
+        cos_theta = np.random.uniform(0.6, 1)  # Ensure longitudinal component is >75%
         sin_theta = np.sqrt(1 - cos_theta**2)
         vx = self.v * sin_theta * np.cos(phi)
         vy = self.v * cos_theta
@@ -146,10 +182,10 @@ class UCNspinRotSim:
         """
         position, velocity = self.generate_neutron()
         path_x, path_y, path_z = [position[0]], [position[1]], [position[2]]
-        dt = 0.0001
+        dt = 0.005 / velocity[1]
 
 
-        while self.yo <= position[1] <= 0:  # Keep particle within tube bounds
+        while self.yo <= position[1] <= -1.3:  # Keep particle within tube bounds
             # Check if the particle is still within the tube before updating
             if position[1] + velocity[1] * dt > 0:
                 # If particle would exceed tube length, stop the simulation
@@ -192,8 +228,8 @@ class UCNspinRotSim:
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(path_x, path_y, path_z, alpha=0.7)
         
-        spin = self.solve_spins(np.array([0, 1, 0]), path)
-        ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
+        # spin = self.solve_spins(np.array([0, 1, 0]), path)
+        # ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
 
         # Cylinder visualization
         theta = np.linspace(0, 2 * np.pi, 100)
@@ -210,6 +246,19 @@ class UCNspinRotSim:
         ax.set_ylabel("Y (m)")
         ax.set_zlabel("Z (m)")
         ax.set_title("Neutron Paths in a Cylindrical Tube")
+
+        plt.show()
+
+
+    def plot_spins(self, path, spin):
+        """Plots a graph of magnetic field experienced along the path
+            and spin evolution as a function of path y component
+
+        Args:
+            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+            spin (np.array[np.array[float]]): path evolution of spin vector [spin_x, spin_y, spin_z]
+
+        """
 
         # Plot the field and spin graphs
         _, axs = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
@@ -247,11 +296,11 @@ class UCNspinRotSim:
 
         """
         B = self.getField(pos)
-        dS = self.gamma * np.cross(S, B)
-        return dS / self.v  # Normalize by velocity since dy = v * dt
+        dS_dt = self.gamma * np.cross(S, B)
+        return dS_dt / self.v # Normalize by velocity since dy = v * dt
     
     def solve_spins(self, S0, path):
-        """Solves the spin evolution for a given neutron path
+        """Solves the spin evolution for a given neutron path and updates a progress bar
 
         Args:
             S0 (np.array[float]): initial spin vector
@@ -262,16 +311,12 @@ class UCNspinRotSim:
 
         """
         # Interpolation function for position along arc length
-        def interpolate_position(s):
-            return np.array([
-                np.interp(s, arc_lengths, path[0]),
-                np.interp(s, arc_lengths, path[1]),
-                np.interp(s, arc_lengths, path[2])
-            ])
+        def get_pos(s):
+            return path[:, int(10 / arc_lengths[10] * s)]
         
-        # ODE: dS/ds = bloch_eq(r(s), S)
+        # ODE in terms of location on path
         def dS_ds(s, S):
-            r = interpolate_position(s)
+            r = get_pos(s)
             return self.bloch_eq(r, S)
 
         # Parameterize path by arc length
@@ -280,18 +325,103 @@ class UCNspinRotSim:
             arc_lengths[i] = arc_lengths[i-1] + np.linalg.norm(path[:, i] - path[:, i-1])
 
         # progress bar for ivp solution
-        pbar = tqdm(total=len(arc_lengths), desc="Solving IVP")
+        pbar = tqdm(total=len(arc_lengths), desc="Solving")
         current_index = [0]
 
         # wrapper of dS_ds with updating progress
-        def ivp(t, y):
+        def ivp(s, S):
             # only update when we pass next arc_length step
-            while (current_index[0] < len(arc_lengths)) and (t >= arc_lengths[current_index[0]]):
+            while (current_index[0] < len(arc_lengths)) and (s >= arc_lengths[current_index[0]]):
                 pbar.update(1)
                 current_index[0] += 1
-            return dS_ds(t, y)
+            return dS_ds(s, S)
+        
+        for i in range(0, path.shape[1]):
+            print(f"At index {i} the value of s is {arc_lengths[i]} and we find {get_pos(arc_lengths[i])} evaluates to {self.getField(get_pos(arc_lengths[i]))}")
     
         # Solve ivp
         solution = solve_ivp(ivp, [arc_lengths[0], arc_lengths[-1]], S0, t_eval=arc_lengths, method='RK45')
 
         return np.array(solution.y)
+    
+    def upsample_path(self, path, upsample_factor=1):
+        """Given a path (3xN), upsample by linear interpolation by a factor of upsample_factor.
+        
+        Args:
+            path: 3xN np.array of positions
+            upsample_factor: int, number of times to increase resolution
+        
+        Returns:
+            path_upsampled: 3xM np.array, with M = (N-1)*upsample_factor + 1
+        """
+        N = path.shape[1]
+        # Original arc length parameterization
+        arc_lengths = np.zeros(N)
+        for i in range(1, N):
+            arc_lengths[i] = arc_lengths[i-1] + np.linalg.norm(path[:, i] - path[:, i-1])
+        
+        # New finer arc length parameterization
+        total_length = arc_lengths[-1]
+        M = (N - 1) * upsample_factor + 1
+        arc_fine = np.linspace(0, total_length, M)
+        
+        # Interpolate each coordinate independently
+        interp_funcs = [interp1d(arc_lengths, path[i], kind='linear') for i in range(3)]
+        
+        path_fine = np.vstack([f(arc_fine) for f in interp_funcs])
+        
+        return path_fine
+        
+
+    def solve_spins(self, S0, path):        
+        """Solves the spin evolution for a given neutron path and updates a progress bar
+
+        Args:
+            S0 (np.array[float]): initial spin vector
+            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+
+        Returns:
+            np.array[np.array[float]] : path of simulated neutron with upsampling [path_x, path_y, path_z]
+            np.array[np.array[float]] : path evolution of spin vector [spin_x, spin_y, spin_z]
+
+        """
+        # upsample path for smaller step size
+        path_fine = self.upsample_path(path, 40)
+
+        # get array of step positions along the path
+        arc_lengths = np.zeros(path_fine.shape[1])
+        for i in range(1, path_fine.shape[1]):
+            arc_lengths[i] = arc_lengths[i - 1] + np.linalg.norm(path_fine[:, i] - path_fine[:, i - 1])
+
+        # interpolate the bloch equation along the path
+        interp_funcs = [interp1d(arc_lengths, path_fine[i], kind='linear', fill_value="extrapolate") for i in range(3)]
+        def get_pos(s):
+            return np.array([f(s) for f in interp_funcs])
+        def bloch_at(s, S):  # Bloch equation evaluated on arc-length
+            return self.bloch_eq(get_pos(s), S)
+
+        # setup and solve spins iteratively
+        S = np.zeros((3, len(arc_lengths)))
+        S[:, 0] = S0
+
+        # progress bar for solution
+        pbar = tqdm(total=len(arc_lengths), desc="Solving")
+
+        for i in range(1, len(arc_lengths)):
+            ds = arc_lengths[i] - arc_lengths[i - 1]
+            s_prev = arc_lengths[i - 1]
+            S_prev = S[:, i - 1]
+
+            # RK4 step
+            k1 = bloch_at(s_prev, S_prev)
+            k2 = bloch_at(s_prev + ds/2, S_prev + ds/2 * k1)
+            k3 = bloch_at(s_prev + ds/2, S_prev + ds/2 * k2)
+            k4 = bloch_at(s_prev + ds, S_prev + ds * k3)
+
+            pbar.update(1)
+
+            S_next = S_prev + ds * (k1 + 2*k2 + 2*k3 + k4) / 6
+            S[:, i] = S_next / np.linalg.norm(S_next)
+
+        return path_fine, S
+

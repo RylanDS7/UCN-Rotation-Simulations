@@ -5,9 +5,6 @@ Code by Rylan Stutters
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import csv
-from scipy.integrate import solve_ivp
 import UCNspinRotSim as ucn
 
 
@@ -16,7 +13,7 @@ v = 7  # Speed of neutrons in m/s
 gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 Bo = 1e-6  # Constant magnetic field in T in the z direction
 D = 0.095 # Diameter of tube
-yo = -4.4
+yo = -3.6
 
 # import field data into B and pos
 pos = []
@@ -39,12 +36,17 @@ for line in lines:
     By = float(line[4])
     Bz = float(line[5])
 
+    # artifically add 1uT uniform field
+    if Bz < 1E-6:
+        Bz = 1E-6
+
     pos.append([x, y, z])
     B.append([Bx, By, Bz])
     
 
 # run simulation
 sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo)
+path = sim.simulate_path()
 
-# sim.plot_Field()
-sim.plot_path(sim.simulate_path())
+path, spins = sim.solve_spins(np.array([0,0,1]), path)
+sim.plot_spins(path, spins)
