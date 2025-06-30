@@ -14,6 +14,7 @@ gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 Bo = 1e-6  # Constant magnetic field in T in the z direction
 D = 0.095 # Diameter of tube
 yo = -3.6
+yf = -1.3
 
 # import field data into B and pos
 pos = []
@@ -45,8 +46,9 @@ for line in lines:
     
 
 # run simulation
-sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo)
+sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo, yf)
 path = sim.simulate_path()
 
-path, spins = sim.solve_spins(np.array([0,0,1]), path)
+path, spins = sim.solve_spins(np.array([0,0,1]), path, 40)
 sim.plot_spins(path, spins)
+sim.plot_path(path, spins)

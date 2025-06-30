@@ -17,10 +17,17 @@ class UCNspinRotSim:
     """Class for running UCN spin polarization simulations
     
     Attributes:
+        v (float): UCN average speed
+        gamma (float): gyromagnetic ratio
+        Bfield (np.array[np.array[float]], np.array[np.array[float]]): B field everywhere in space, of the form 
+            [[pos_x, pos_y, pos_z], [B_x, B_y, B_z]]
+        D (float): diameter of the simulation region
+        yo (float): starting point of the simulation region
+        yf (float): ending point of the simulation region
         
     """
 
-    def __init__(self, v, gamma, Bfield, D, yo):
+    def __init__(self, v, gamma, Bfield, D, yo, yf):
         """Initialize simulation
 
         Args:
@@ -30,6 +37,7 @@ class UCNspinRotSim:
                                 [[pos_x, pos_y, pos_z], [B_x, B_y, B_z]]
             D (float): diameter of the simulation region
             yo (float): length of the simulation region
+            yf (float): ending point of the simulation region
 
         """
 
@@ -39,10 +47,14 @@ class UCNspinRotSim:
         self.Bfield = Bfield
         self.D = D
         self.yo = yo
+        self.yf = yf
         self.setup_interpolator()
 
 
     def setup_interpolator(self):
+        """Initialize mag field interpolator
+
+        """
         positions = self.Bfield[0]
         Bvectors = self.Bfield[1]
 
@@ -71,25 +83,20 @@ class UCNspinRotSim:
 
 
     def getField(self, pos):
+        """Retrieve the field at a position using the grid interpolator
+
+        Args:
+            pos (np.array[float]): current position of particle, [pos_x, pos_y, pos_z]
+
+        Returns:
+            np.array[float] : interpolated magnetic field at pos [Bx, By, Bz]
+
+        """
         Bx_val = self.B_interp_x(pos)
         By_val = self.B_interp_y(pos)
         Bz_val = self.B_interp_z(pos)
 
         return np.array([Bx_val, By_val, Bz_val]).flatten()
-
-    # def getField(self, pos):
-    #     """Retrieves mag field at specified position
-
-    #     Args:
-    #         pos (np.array[float]): position to get field, [pos_x, pos_y, pos_z]
-
-    #     Returns:
-    #         B (np.array[float]): B field components at point pos, [B_x, B_y, B_z]
-    #     """
-    #     B = self.B_interp(pos)
-    #     if B is None or np.any(np.isnan(B)):
-    #         B = np.zeros(3)  # fallback
-    #     return B
     
 
     def plot_Field(self):
@@ -119,15 +126,14 @@ class UCNspinRotSim:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("Z")
-        ax.legend()
         plt.show()
 
 
     def generate_neutron(self):
-        """function to init neutron position and velocity
+        """function to initialize neutron position and velocity
 
         Returns:
-            [np.array[float], np.array[float] : position and velocities of generated neutron
+            [np.array[float], np.array[float]] : position and velocities of generated neutron
                                                 [[pos_x, pos_y, pos_z], [vel_x, vel_y, vel_z]]
 
         """
@@ -185,7 +191,7 @@ class UCNspinRotSim:
         dt = 0.005 / velocity[1]
 
 
-        while self.yo <= position[1] <= -1.3:  # Keep particle within tube bounds
+        while self.yo <= position[1] <= self.yf:  # Keep particle within tube bounds
             # Check if the particle is still within the tube before updating
             if position[1] + velocity[1] * dt > 0:
                 # If particle would exceed tube length, stop the simulation
@@ -212,11 +218,12 @@ class UCNspinRotSim:
         return np.array([path_x, path_y, path_z])
     
 
-    def plot_path(self, path):
+    def plot_path(self, path, spin):
         """3D plots a neutron path and the spin changes over the path
 
         Args:
             path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+            spin (np.array[np.array[float]]): path evolution of spin vector [spin_x, spin_y, spin_z]
 
         """
 
@@ -228,8 +235,7 @@ class UCNspinRotSim:
         ax = fig.add_subplot(111, projection='3d')
         ax.plot(path_x, path_y, path_z, alpha=0.7)
         
-        # spin = self.solve_spins(np.array([0, 1, 0]), path)
-        # ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
+        ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
 
         # Cylinder visualization
         theta = np.linspace(0, 2 * np.pi, 100)
@@ -288,7 +294,7 @@ class UCNspinRotSim:
         """The bloch equation
 
         Args:
-            pos (float): current position
+            pos (np.array[float]): current position [x, y, z]
             S (np.array[float]): current spin vector [S_x, S_y, S_z]
 
         Returns:
@@ -299,52 +305,8 @@ class UCNspinRotSim:
         dS_dt = self.gamma * np.cross(S, B)
         return dS_dt / self.v # Normalize by velocity since dy = v * dt
     
-    def solve_spins(self, S0, path):
-        """Solves the spin evolution for a given neutron path and updates a progress bar
-
-        Args:
-            S0 (np.array[float]): initial spin vector
-            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
-
-        Returns:
-            np.array[np.array[float]] : path evolution of spin vector [spin_x, spin_y, spin_z]
-
-        """
-        # Interpolation function for position along arc length
-        def get_pos(s):
-            return path[:, int(10 / arc_lengths[10] * s)]
-        
-        # ODE in terms of location on path
-        def dS_ds(s, S):
-            r = get_pos(s)
-            return self.bloch_eq(r, S)
-
-        # Parameterize path by arc length
-        arc_lengths = np.zeros(path.shape[1])
-        for i in range(1, path.shape[1]):
-            arc_lengths[i] = arc_lengths[i-1] + np.linalg.norm(path[:, i] - path[:, i-1])
-
-        # progress bar for ivp solution
-        pbar = tqdm(total=len(arc_lengths), desc="Solving")
-        current_index = [0]
-
-        # wrapper of dS_ds with updating progress
-        def ivp(s, S):
-            # only update when we pass next arc_length step
-            while (current_index[0] < len(arc_lengths)) and (s >= arc_lengths[current_index[0]]):
-                pbar.update(1)
-                current_index[0] += 1
-            return dS_ds(s, S)
-        
-        for i in range(0, path.shape[1]):
-            print(f"At index {i} the value of s is {arc_lengths[i]} and we find {get_pos(arc_lengths[i])} evaluates to {self.getField(get_pos(arc_lengths[i]))}")
     
-        # Solve ivp
-        solution = solve_ivp(ivp, [arc_lengths[0], arc_lengths[-1]], S0, t_eval=arc_lengths, method='RK45')
-
-        return np.array(solution.y)
-    
-    def upsample_path(self, path, upsample_factor=1):
+    def upsample_path(self, path, upsample_factor):
         """Given a path (3xN), upsample by linear interpolation by a factor of upsample_factor.
         
         Args:
@@ -373,12 +335,13 @@ class UCNspinRotSim:
         return path_fine
         
 
-    def solve_spins(self, S0, path):        
+    def solve_spins(self, S0, path, upsample_factor):        
         """Solves the spin evolution for a given neutron path and updates a progress bar
 
         Args:
             S0 (np.array[float]): initial spin vector
             path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
+            upsample_factor (int): number of times to increase resolution of the path
 
         Returns:
             np.array[np.array[float]] : path of simulated neutron with upsampling [path_x, path_y, path_z]
@@ -386,7 +349,7 @@ class UCNspinRotSim:
 
         """
         # upsample path for smaller step size
-        path_fine = self.upsample_path(path, 40)
+        path_fine = self.upsample_path(path, upsample_factor)
 
         # get array of step positions along the path
         arc_lengths = np.zeros(path_fine.shape[1])
@@ -420,6 +383,7 @@ class UCNspinRotSim:
 
             pbar.update(1)
 
+            # RK4 evaluation by averaging slopes
             S_next = S_prev + ds * (k1 + 2*k2 + 2*k3 + k4) / 6
             S[:, i] = S_next / np.linalg.norm(S_next)
 
