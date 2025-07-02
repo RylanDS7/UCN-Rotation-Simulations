@@ -13,8 +13,8 @@ v = 7  # Speed of neutrons in m/s
 gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 Bo = 1e-6  # Constant magnetic field in T in the z direction
 D = 0.095 # Diameter of tube
-yo = -3.6
-yf = -1.3
+yo = -3.6 # Starting y value
+yf = -1.3 # Ending y value
 
 # import field data into B and pos
 pos = []
@@ -22,7 +22,7 @@ B = []
 lines = []
 
 # read space seperated data from txt file
-with open('FieldGrid-2.txt', 'r') as file:
+with open('field_data/FieldGrid-2.txt', 'r') as file:
     for line in file:
         elements = line.split()
         if elements[0] != '%': 
@@ -48,7 +48,8 @@ for line in lines:
 # run simulation
 sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo, yf)
 path = sim.simulate_path()
-
 path, spins = sim.solve_spins(np.array([0,0,1]), path, 40)
+
+# plot output data
 sim.plot_spins(path, spins)
 sim.plot_path(path, spins)

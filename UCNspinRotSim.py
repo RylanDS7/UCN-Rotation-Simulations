@@ -24,6 +24,7 @@ class UCNspinRotSim:
         D (float): diameter of the simulation region
         yo (float): starting point of the simulation region
         yf (float): ending point of the simulation region
+        theta (float): the angle in degrees that the simulated nuetron makes with the y axis
         
     """
 
@@ -48,6 +49,7 @@ class UCNspinRotSim:
         self.D = D
         self.yo = yo
         self.yf = yf
+        self.theta = 0
         self.setup_interpolator()
 
 
@@ -147,11 +149,14 @@ class UCNspinRotSim:
         
         # Randomly generate a velocity direction
         phi = np.random.uniform(0, 2 * np.pi)
-        cos_theta = np.random.uniform(0.6, 1)  # Ensure longitudinal component is >75%
+        cos_theta = np.random.uniform(0.6, 1)  # Ensure longitudinal component is >60%
         sin_theta = np.sqrt(1 - cos_theta**2)
         vx = self.v * sin_theta * np.cos(phi)
         vy = self.v * cos_theta
         vz = self.v * sin_theta * np.sin(phi)
+
+        # save theta angle
+        self.theta = np.arccos(cos_theta) * 180 / np.pi
 
         return np.array([x, y, z]), np.array([vx, vy, vz])
         
@@ -287,7 +292,9 @@ class UCNspinRotSim:
         axs[1].legend()
         axs[1].grid(True, which='both', axis='both')
 
-        plt.show()
+        axs[1].text(0.5, 1.1, f"UCN Incidence Angle: {self.theta:.2f}", horizontalalignment='center', verticalalignment='center', fontsize=12, transform=axs[1].transAxes)
+
+        plt.show(block=False)
 
 
     def bloch_eq(self, pos, S):
