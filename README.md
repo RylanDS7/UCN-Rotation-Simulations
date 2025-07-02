@@ -1,5 +1,5 @@
 # UCN-Rotation-Simulations
-Simulations for the spin vector evolution of random ultracold neutron paths (UCN) under a given magnetic fields influence. The class UCNspinRotSim is used for the main simulation.
+Simulations for the spin vector evolution of random ultracold neutron (UCN) paths under a given magnetic field's influence. The class UCNspinRotSim is used for the main simulation.
 
 ## UCNspinRotSim
 This python class generates neutron paths and solves the spin evolution along that path for a specified magnetic vector field and UCN guide geometry. An example of how to use the class is demonstrated in testFieldFullSim.py
