@@ -25,6 +25,9 @@ class UCNspinRotSim:
         yo (float): starting point of the simulation region
         yf (float): ending point of the simulation region
         theta (float): the angle in degrees that the simulated nuetron makes with the y axis
+        B_interp_x (RegularGridInterpolator): Interpolator for Bx
+        B_interp_y (RegularGridInterpolator): Interpolator for By
+        B_interp_z (RegularGridInterpolator): Interpolator for Bz
         
     """
 
@@ -78,7 +81,6 @@ class UCNspinRotSim:
         By = Bvectors_sorted[:, 1].reshape(len(x_unique), len(y_unique), len(z_unique))
         Bz = Bvectors_sorted[:, 2].reshape(len(x_unique), len(y_unique), len(z_unique))
 
-        from scipy.interpolate import RegularGridInterpolator
         self.B_interp_x = RegularGridInterpolator((x_unique, y_unique, z_unique), Bx)
         self.B_interp_y = RegularGridInterpolator((x_unique, y_unique, z_unique), By)
         self.B_interp_z = RegularGridInterpolator((x_unique, y_unique, z_unique), Bz)
@@ -109,22 +111,23 @@ class UCNspinRotSim:
         # init plot
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
+        
+        # Define grid points
+        r = self.D / 2
+        x_vals = np.linspace(-r, r, 6)
+        y_vals = np.linspace(self.yo, self.yf, 6)
+        z_vals = np.linspace(-r, r, 6)
 
-        # Position and vector components
-        X, Y, Z = self.Bfield[0][:, 0], self.Bfield[0][:, 1], self.Bfield[0][:, 2]
-        U, V, W = self.Bfield[1][:, 0], self.Bfield[1][:, 1], self.Bfield[1][:, 2]
+        X, Y, Z = np.meshgrid(x_vals, y_vals, z_vals, indexing='ij')
+        positions = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
 
-        # scalar field for coloring (e.g., magnitude of the vector)
-        C = np.linalg.norm(self.Bfield[1], axis=1)
+        # Compute B-field at each grid point
+        B = np.array([self.getField(pos) for pos in positions])
 
-        # Normalize vectors for plotting
-        B_norm = np.stack((U, V, W), axis=1)
-        B_norm = B_norm / np.linalg.norm(B_norm, axis=1)[:, np.newaxis]
-
-        ax.quiver(X, Y, Z,
-                  B_norm[:,0], B_norm[:,1], B_norm[:,2],
-                  length=1E-3, normalize=True, colors=plt.cm.viridis(C / C.max()))
-
+        ax.quiver(positions[:,0], positions[:,1], positions[:,2],
+                  B[:,0], B[:,1], B[:,2],
+                  length=1E-2, normalize=True)
+        
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("Z")
@@ -294,7 +297,7 @@ class UCNspinRotSim:
 
         axs[1].text(0.5, 1.1, f"UCN Incidence Angle: {self.theta:.2f}", horizontalalignment='center', verticalalignment='center', fontsize=12, transform=axs[1].transAxes)
 
-        plt.show(block=False)
+        plt.show()
 
 
     def bloch_eq(self, pos, S):

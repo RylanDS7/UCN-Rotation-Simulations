@@ -52,4 +52,3 @@ path, spins = sim.solve_spins(np.array([0,0,1]), path, 40)
 
 # plot output data
 sim.plot_spins(path, spins)
-sim.plot_path(path, spins)
