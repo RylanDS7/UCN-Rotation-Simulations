@@ -9,7 +9,7 @@ Adapted from code by Libertad Barron Palos
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
+from matplotlib.backends.backend_pdf import PdfPages
 from scipy.interpolate import interp1d, RegularGridInterpolator
 from tqdm import tqdm
 
@@ -398,4 +398,32 @@ class UCNspinRotSim:
             S[:, i] = S_next / np.linalg.norm(S_next)
 
         return path_fine, S
+    
+    
+    def plot_spin_set(self, paths, spins, pdf_name="spin_plots.pdf"):
+        with PdfPages(pdf_name) as pdf:
+            for i in range(len(paths)):
+                fig, ax = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
 
+                path = paths[i]
+                spin = spins[i]
+                path_field = np.array([self.getField(path[:, j]) for j in range(path.shape[1])]).T
+
+                ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
+                ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
+                ax[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")
+                ax[0].legend()
+                ax[0].grid(True)
+                ax[0].set_ylabel("Magnetic Field (μT)")
+
+                ax[1].plot(path[1], spin[0], label="Sx", color="red")
+                ax[1].plot(path[1], spin[1], label="Sy", color="blue")
+                ax[1].plot(path[1], spin[2], label="Sz", color="green")
+                ax[1].legend()
+                ax[1].grid(True)
+                ax[1].set_ylabel("Spin Components")
+
+                fig.suptitle(f"UCN Spin Evolution (Path {i + 1})", fontsize=16)
+                pdf.savefig(fig)
+                plt.close(fig)
+                

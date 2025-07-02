@@ -1,5 +1,5 @@
 """
-Instance of UCNspinRotSim for test field
+Instance of UCNspinRotSim for test field data
 
 Code by Rylan Stutters
 """
