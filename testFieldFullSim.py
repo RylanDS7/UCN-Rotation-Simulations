@@ -47,7 +47,7 @@ for line in lines:
 
 # run simulation
 sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo, yf)
-path = sim.simulate_path()
+path, collisions, theta = sim.simulate_path()
 path, spins = sim.solve_spins(np.array([0,0,1]), path, 40)
 
 # plot output data

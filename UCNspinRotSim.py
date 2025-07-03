@@ -192,12 +192,15 @@ class UCNspinRotSim:
 
         Returns:
             np.array[np.array[float]] : path of simulated neutron [path_x, path_y, path_z]
+            np.array[np.array[float]] : collision locations of the path
             float : the angle in degrees that the simulated nuetron makes with the y axis
 
         """
         position, velocity = self.generate_neutron()
         path_x, path_y, path_z = [position[0]], [position[1]], [position[2]]
         dt = 0.005 / velocity[1]
+
+        collisions = []
 
 
         while self.yo <= position[1] <= self.yf:  # Keep particle within tube bounds
@@ -219,12 +222,14 @@ class UCNspinRotSim:
                 position[0] *= correction_factor
                 position[2] *= correction_factor
 
+                collisions.append(np.copy(position))
+
             # Record the position
             path_x.append(position[0])
             path_y.append(position[1])
             path_z.append(position[2])
 
-        return np.array([path_x, path_y, path_z]), self.theta
+        return np.array([path_x, path_y, path_z]), np.array(collisions), self.theta
     
 
     def plot_path(self, path, spin):
@@ -401,14 +406,15 @@ class UCNspinRotSim:
         return path_fine, S
     
     
-    def plot_spin_set(self, paths, spins, thetas, pdf_name="spin_plots.pdf"):
+    def plot_spin_set(self, paths, spins, collisions_set, thetas, pdf_name="spin_plots.pdf"):
         """Plots a graph of magnetic field experienced along the path
             and spin evolution as a function of path y component
             for a collection of paths and compiles them into a pdf
 
         Args:
-            path (np.array[np.array[float]]): paths of simulated neutron [path_x, path_y, path_z]
-            spin (np.array[np.array[float]]): path evolutions of spin vectors [spin_x, spin_y, spin_z]
+            path (np.array[np.array[np.array[float]]]): paths of simulated neutron [path_x, path_y, path_z]
+            spin (np.array[np.array[np.array[float]]]): path evolutions of spin vectors [spin_x, spin_y, spin_z]
+            collisions_set (np.array[np.array[np.array[float]]]) : collision locations along the paths
             thetas (np.array[float]): thetas corresponding to the path
 
         """
@@ -418,11 +424,13 @@ class UCNspinRotSim:
 
                 path = paths[i]
                 spin = spins[i]
+                collisions = collisions_set[i]
                 path_field = np.array([self.getField(path[:, j]) for j in range(path.shape[1])]).T
 
                 ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
                 ax[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")
+                ax[0].vlines(collisions[:,1], 0, 400, colors='yellow', linestyles='dotted')
                 ax[0].legend()
                 ax[0].grid(True)
                 ax[0].set_ylabel("Magnetic Field (μT)")
@@ -430,6 +438,7 @@ class UCNspinRotSim:
                 ax[1].plot(path[1], spin[0], label="Sx", color="red")
                 ax[1].plot(path[1], spin[1], label="Sy", color="blue")
                 ax[1].plot(path[1], spin[2], label="Sz", color="green")
+                ax[1].vlines(collisions[:,1], -1, 1, colors='yellow', linestyles='dotted')
                 ax[1].legend()
                 ax[1].grid(True)
                 ax[1].set_ylabel("Spin Components")
