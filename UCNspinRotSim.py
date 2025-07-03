@@ -192,6 +192,7 @@ class UCNspinRotSim:
 
         Returns:
             np.array[np.array[float]] : path of simulated neutron [path_x, path_y, path_z]
+            float : the angle in degrees that the simulated nuetron makes with the y axis
 
         """
         position, velocity = self.generate_neutron()
@@ -223,7 +224,7 @@ class UCNspinRotSim:
             path_y.append(position[1])
             path_z.append(position[2])
 
-        return np.array([path_x, path_y, path_z])
+        return np.array([path_x, path_y, path_z]), self.theta
     
 
     def plot_path(self, path, spin):
@@ -400,7 +401,17 @@ class UCNspinRotSim:
         return path_fine, S
     
     
-    def plot_spin_set(self, paths, spins, pdf_name="spin_plots.pdf"):
+    def plot_spin_set(self, paths, spins, thetas, pdf_name="spin_plots.pdf"):
+        """Plots a graph of magnetic field experienced along the path
+            and spin evolution as a function of path y component
+            for a collection of paths and compiles them into a pdf
+
+        Args:
+            path (np.array[np.array[float]]): paths of simulated neutron [path_x, path_y, path_z]
+            spin (np.array[np.array[float]]): path evolutions of spin vectors [spin_x, spin_y, spin_z]
+            thetas (np.array[float]): thetas corresponding to the path
+
+        """
         with PdfPages(pdf_name) as pdf:
             for i in range(len(paths)):
                 fig, ax = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
@@ -422,6 +433,8 @@ class UCNspinRotSim:
                 ax[1].legend()
                 ax[1].grid(True)
                 ax[1].set_ylabel("Spin Components")
+
+                ax[1].set_title(f"Spin evolution | Path index: {i + 1} / {len(paths)} | θ = {thetas[i]:.2f} degrees")
 
                 fig.suptitle(f"UCN Spin Evolution (Path {i + 1})", fontsize=16)
                 pdf.savefig(fig)

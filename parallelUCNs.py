@@ -16,7 +16,7 @@ D = 0.095 # Diameter of tube
 yo = -3.6 # Starting y value
 yf = -1.3 # Ending y value
 S0 = np.array([0,0,1]) # initial spin vector
-num_paths = 100 # number of UCN paths to simulate
+num_paths = 10 # number of UCN paths to simulate
 
 # import field data into B and pos
 pos = []
@@ -60,7 +60,13 @@ if __name__ == '__main__':
     # Create sim object to generate paths
     sim = ucn.UCNspinRotSim(*sim_params)
 
-    paths = [sim.simulate_path() for _ in range(num_paths)]
+    paths = []
+    thetas = []
+    for i in range(num_paths):
+        path, theta = sim.simulate_path()
+        paths.append(path)
+        thetas.append(theta)
+
     print("Finished generating paths")
 
     with mp.Pool(mp.cpu_count()) as pool:
@@ -70,4 +76,4 @@ if __name__ == '__main__':
     paths_out, spins_out = zip(*results)
 
     # Plot the results
-    sim.plot_spin_set(paths_out, spins_out)
+    sim.plot_spin_set(paths_out, spins_out, np.array(thetas))
