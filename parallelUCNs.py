@@ -16,7 +16,7 @@ D = 0.095 # Diameter of tube
 yo = -3.6 # Starting y value
 yf = -1.3 # Ending y value
 S0 = np.array([0,0,1]) # initial spin vector
-num_paths = 1 # number of UCN paths to simulate
+num_paths = 5 # number of UCN paths to simulate
 
 # import field data into B and pos
 pos = []

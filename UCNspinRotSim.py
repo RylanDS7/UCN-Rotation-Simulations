@@ -420,7 +420,7 @@ class UCNspinRotSim:
         """
         with PdfPages(pdf_name) as pdf:
             for i in range(len(paths)):
-                fig, ax = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
+                fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
                 path = paths[i]
                 spin = spins[i]
@@ -430,20 +430,21 @@ class UCNspinRotSim:
                 ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
                 ax[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")
-                ax[0].vlines(collisions[:,1], 0, 400, colors='yellow', linestyles='dotted')
+                ax[0].vlines(collisions[:,1], 0, 400, label="Collisions", colors='yellow', linestyles='dotted')
                 ax[0].legend()
                 ax[0].grid(True)
-                ax[0].set_ylabel("Magnetic Field (μT)")
+                ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
+                ax[0].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
+                ax[0].set_title(f"Path index: {i + 1} / {len(paths)} | θ = {thetas[i]:.2f} degrees", fontsize=22)
 
                 ax[1].plot(path[1], spin[0], label="Sx", color="red")
                 ax[1].plot(path[1], spin[1], label="Sy", color="blue")
                 ax[1].plot(path[1], spin[2], label="Sz", color="green")
-                ax[1].vlines(collisions[:,1], -1, 1, colors='yellow', linestyles='dotted')
+                ax[1].vlines(collisions[:,1], -1, 1, label="Collisions", colors='yellow', linestyles='dotted')
                 ax[1].legend()
                 ax[1].grid(True)
-                ax[1].set_ylabel("Spin Components")
-
-                ax[1].set_title(f"Spin evolution | Path index: {i + 1} / {len(paths)} | θ = {thetas[i]:.2f} degrees")
+                ax[1].set_ylabel("Spin Components", fontsize=20)
+                ax[1].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
 
                 fig.suptitle(f"UCN Spin Evolution (Path {i + 1})", fontsize=16)
                 pdf.savefig(fig)
