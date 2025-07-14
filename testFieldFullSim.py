@@ -15,6 +15,9 @@ Bo = 1e-6  # Constant magnetic field in T in the z direction
 D = 0.095 # Diameter of tube
 yo = -3.6 # Starting y value
 yf = -1.3 # Ending y value
+upsample_factor = 40
+S0 = np.array([0, 0, 1])
+num_paths = 5
 
 # import field data into B and pos
 pos = []
@@ -46,9 +49,8 @@ for line in lines:
     
 
 # run simulation
-sim = ucn.UCNspinRotSim(v, gamma, [np.array(pos), np.array(B)], D, yo, yf)
-path, collisions, theta = sim.simulate_path()
-path, spins = sim.solve_spins(np.array([0,0,1]), path, 40)
+sim = ucn.UCNspinRotSim(gamma, [np.array(pos), np.array(B)], num_paths, v, D, yo, yf, upsample_factor)
+sim.solve_spins(S0)
 
 # plot output data
-sim.plot_spins(path, spins)
+sim.plot_spin_set()

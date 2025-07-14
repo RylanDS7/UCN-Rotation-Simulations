@@ -7,6 +7,7 @@ Adapted from code by Libertad Barron Palos
 
 """
 
+import UCNpath as path
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -17,43 +18,40 @@ class UCNspinRotSim:
     """Class for running UCN spin polarization simulations
     
     Attributes:
-        v (float): UCN average speed
         gamma (float): gyromagnetic ratio
+        v (float): speed of the UCNs
         Bfield (np.array[np.array[float]], np.array[np.array[float]]): B field everywhere in space, of the form 
             [[pos_x, pos_y, pos_z], [B_x, B_y, B_z]]
-        D (float): diameter of the simulation region
-        yo (float): starting point of the simulation region
-        yf (float): ending point of the simulation region
-        theta (float): the angle in degrees that the simulated nuetron makes with the y axis
         B_interp_x (RegularGridInterpolator): Interpolator for Bx
         B_interp_y (RegularGridInterpolator): Interpolator for By
         B_interp_z (RegularGridInterpolator): Interpolator for Bz
+        UCNpaths (np.array[UCNpath]): The array of path objects for the UCN paths
         
     """
 
-    def __init__(self, v, gamma, Bfield, D, yo, yf):
+    def __init__(self, gamma, Bfield, num_paths, v, D, yo, yf, upsample_factor):
         """Initialize simulation
 
         Args:
-            v (float): speed of UCNs
             gamma (float): gyromagnetic ratio
             Bfield (np.array[np.array[float]], np.array[np.array[float]]): B field everywhere in space, of the form 
                                 [[pos_x, pos_y, pos_z], [B_x, B_y, B_z]]
+            num_paths: The number of UCN paths to generate
+            v (float): speed of UCNs
             D (float): diameter of the simulation region
             yo (float): length of the simulation region
             yf (float): ending point of the simulation region
+            upsample_factor (int): the factor the path is upsampled beyond 0.005m
 
         """
 
         # init class attributes
-        self.v = v
         self.gamma = gamma
+        self.v = v
         self.Bfield = Bfield
-        self.D = D
-        self.yo = yo
-        self.yf = yf
-        self.theta = 0
+
         self.setup_interpolator()
+        self.init_paths(num_paths, v, D, yo, yf, upsample_factor)
 
 
     def setup_interpolator(self):
@@ -85,6 +83,27 @@ class UCNspinRotSim:
         self.B_interp_y = RegularGridInterpolator((x_unique, y_unique, z_unique), By)
         self.B_interp_z = RegularGridInterpolator((x_unique, y_unique, z_unique), Bz)
 
+    def init_paths(self, num_paths, v, D, yo, yf, upsample_factor):
+        """Initialize UCN paths
+
+        Args:
+            num_paths: The number of UCN paths to generate
+            v (float): speed of UCNs
+            D (float): diameter of the simulation region
+            yo (float): length of the simulation region
+            yf (float): ending point of the simulation region
+            upsample_factor (int): the factor the path is upsampled beyond 0.005m
+
+        """
+        UCNpaths = []
+        for i in range(num_paths):
+            newPath = path.UCNpath(v, D, yo, yf, upsample_factor)
+            newPath.save_Bfield(self.B_interp_x, self.B_interp_y, self.B_interp_z)
+            UCNpaths.append(newPath)
+
+        self.UCNpaths = np.array(UCNpaths)
+
+
 
     def getField(self, pos):
         """Retrieve the field at a position using the grid interpolator
@@ -101,312 +120,66 @@ class UCNspinRotSim:
         Bz_val = self.B_interp_z(pos)
 
         return np.array([Bx_val, By_val, Bz_val]).flatten()
-    
-
-    def plot_Field(self):
-        """3D plots the vector field self.Bfield
-
-        """
-
-        # init plot
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Define grid points
-        r = self.D / 2
-        x_vals = np.linspace(-r, r, 6)
-        y_vals = np.linspace(self.yo, self.yf, 6)
-        z_vals = np.linspace(-r, r, 6)
-
-        X, Y, Z = np.meshgrid(x_vals, y_vals, z_vals, indexing='ij')
-        positions = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
-
-        # Compute B-field at each grid point
-        B = np.array([self.getField(pos) for pos in positions])
-
-        ax.quiver(positions[:,0], positions[:,1], positions[:,2],
-                  B[:,0], B[:,1], B[:,2],
-                  length=1E-2, normalize=True)
-        
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        ax.set_zlabel("Z")
-        plt.show()
 
 
-    def generate_neutron(self):
-        """function to initialize neutron position and velocity
-
-        Returns:
-            [np.array[float], np.array[float]] : position and velocities of generated neutron
-                                                [[pos_x, pos_y, pos_z], [vel_x, vel_y, vel_z]]
-
-        """
-
-        # Randomly generate a position on the circular source
-        r = (self.D / 2) * np.sqrt(np.random.uniform())
-        theta = np.random.uniform(0, 2 * np.pi)
-        x = r * np.cos(theta)
-        z = r * np.sin(theta)
-        y = self.yo # Start at one end of the tube
-        
-        # Randomly generate a velocity direction
-        phi = np.random.uniform(0, 2 * np.pi)
-        cos_theta = np.random.uniform(0.6, 1)  # Ensure longitudinal component is >60%
-        sin_theta = np.sqrt(1 - cos_theta**2)
-        vx = self.v * sin_theta * np.cos(phi)
-        vy = self.v * cos_theta
-        vz = self.v * sin_theta * np.sin(phi)
-
-        # save theta angle
-        self.theta = np.arccos(cos_theta) * 180 / np.pi
-
-        return np.array([x, y, z]), np.array([vx, vy, vz])
-        
-    
-    def reflect(self, position, velocity):
-        """Function to calculate specular reflection
-
-        Args:
-            position (np.array[float]): current position of particle, [pos_x, pos_y, pos_z]
-            velocity (np.array[float]): current velocity of particle, [vel_x, vel_y, vel_z]
-
-        Returns:
-            np.array[float] : new velocity of reflected particle [vel_x, vel_y, vel_z]
-
-        """
-        x, y, z = position
-        vx, vy, vz = velocity
-        # Normal to the cylindrical wall
-        normal = np.array([x, 0, z]) / np.sqrt(x**2 + z**2)
-        # Decompose velocity
-        v_parallel = velocity - np.dot(velocity, normal) * normal
-        v_perpendicular = np.dot(velocity, normal) * normal
-        # Invert the perpendicular component for specular reflection
-        new_velocity = v_parallel - v_perpendicular
-        return new_velocity
-    
-
-    def simulate_path(self):
-        """function to simulate the path of one neutron
-
-        Returns:
-            np.array[np.array[float]] : path of simulated neutron [path_x, path_y, path_z]
-            np.array[np.array[float]] : collision locations of the path
-            float : the angle in degrees that the simulated nuetron makes with the y axis
-
-        """
-        position, velocity = self.generate_neutron()
-        path_x, path_y, path_z = [position[0]], [position[1]], [position[2]]
-        dt = 0.005 / velocity[1]
-
-        collisions = []
-
-
-        while self.yo <= position[1] <= self.yf:  # Keep particle within tube bounds
-            # Check if the particle is still within the tube before updating
-            if position[1] + velocity[1] * dt > 0:
-                # If particle would exceed tube length, stop the simulation
-                break
-            
-            # Update position
-            position += velocity * dt
-
-            # Check for wall collision
-            distance_to_axis = np.sqrt(position[0]**2 + position[2]**2)
-            if distance_to_axis > (self.D / 2):
-                # Reflect the velocity
-                velocity = self.reflect(position, velocity)
-                # Correct position to ensure it stays inside the tube
-                correction_factor = (self.D / 2) / distance_to_axis
-                position[0] *= correction_factor
-                position[2] *= correction_factor
-
-                collisions.append(np.copy(position))
-
-            # Record the position
-            path_x.append(position[0])
-            path_y.append(position[1])
-            path_z.append(position[2])
-
-        return np.array([path_x, path_y, path_z]), np.array(collisions), self.theta
-    
-
-    def plot_path(self, path, spin):
-        """3D plots a neutron path and the spin changes over the path
-
-        Args:
-            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
-            spin (np.array[np.array[float]]): path evolution of spin vector [spin_x, spin_y, spin_z]
-
-        """
-
-        path_x = path[0]
-        path_y = path[1]
-        path_z = path[2]
-
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot(path_x, path_y, path_z, alpha=0.7)
-        
-        ax.quiver(path_x, path_y, path_z, spin[0], spin[1], spin[2], length=0.01, normalize = True)
-
-        # Cylinder visualization
-        theta = np.linspace(0, 2 * np.pi, 100)
-        z = np.linspace(self.yo, 0, 100)
-        theta, z = np.meshgrid(theta, z)
-        x_cylinder = (self.D / 2) * np.cos(theta)
-        y_cylinder = z
-        z_cylinder = (self.D / 2) * np.sin(theta)
-
-        ax.plot_surface(x_cylinder, y_cylinder, z_cylinder, color='cyan', alpha=0.1)
-
-        # Labels and show plot
-        ax.set_xlabel("X (m)")
-        ax.set_ylabel("Y (m)")
-        ax.set_zlabel("Z (m)")
-        ax.set_title("Neutron Paths in a Cylindrical Tube")
-
-        plt.show()
-
-
-    def plot_spins(self, path, spin):
-        """Plots a graph of magnetic field experienced along the path
-            and spin evolution as a function of path y component
-
-        Args:
-            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
-            spin (np.array[np.array[float]]): path evolution of spin vector [spin_x, spin_y, spin_z]
-
-        """
-
-        # Plot the field and spin graphs
-        _, axs = plt.subplots(2, 1, figsize=(12, 12), sharex=True)
-
-        path_field = np.array([self.getField(path[:, i]) for i in range(path.shape[1])]).T
-
-        # First plot for magnetic field components
-        axs[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")  # Convert to µT
-        axs[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")  # Convert to µT
-        axs[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")  # Convert to µT
-        axs[0].set_ylabel("Magnetic Field (μT)")
-        axs[0].legend()
-        axs[0].grid(True, which='both', axis='both')
-
-        # Second plot for spin components
-        axs[1].plot(path[1], spin[0], label="Sx", color="red")
-        axs[1].plot(path[1], spin[1], label="Sy", color="blue")
-        axs[1].plot(path[1], spin[2], label="Sz", color="green")
-        axs[1].set_ylabel("Spin Components")
-        axs[1].legend()
-        axs[1].grid(True, which='both', axis='both')
-
-        axs[1].text(0.5, 1.1, f"UCN Incidence Angle: {self.theta:.2f}", horizontalalignment='center', verticalalignment='center', fontsize=12, transform=axs[1].transAxes)
-
-        plt.show()
-
-
-    def bloch_eq(self, pos, S):
+    def bloch_eq(self, B, S):
         """The bloch equation
 
         Args:
-            pos (np.array[float]): current position [x, y, z]
+            B (np.array[float]): current Bfield vector [Bx, By, Bz]
             S (np.array[float]): current spin vector [S_x, S_y, S_z]
 
         Returns:
             float : the result of the bloch equation as ds_dr
 
         """
-        B = self.getField(pos)
         dS_dt = self.gamma * np.cross(S, B)
         return dS_dt / self.v # Normalize by velocity since dy = v * dt
-    
-    
-    def upsample_path(self, path, upsample_factor):
-        """Given a path (3xN), upsample by linear interpolation by a factor of upsample_factor.
-        
-        Args:
-            path: 3xN np.array of positions
-            upsample_factor: int, number of times to increase resolution
-        
-        Returns:
-            path_upsampled: 3xM np.array, with M = (N-1)*upsample_factor + 1
-        """
-        N = path.shape[1]
-        # Original arc length parameterization
-        arc_lengths = np.zeros(N)
-        for i in range(1, N):
-            arc_lengths[i] = arc_lengths[i-1] + np.linalg.norm(path[:, i] - path[:, i-1])
-        
-        # New finer arc length parameterization
-        total_length = arc_lengths[-1]
-        M = (N - 1) * upsample_factor + 1
-        arc_fine = np.linspace(0, total_length, M)
-        
-        # Interpolate each coordinate independently
-        interp_funcs = [interp1d(arc_lengths, path[i], kind='linear') for i in range(3)]
-        
-        path_fine = np.vstack([f(arc_fine) for f in interp_funcs])
-        
-        return path_fine
         
 
-    def solve_spins(self, S0, path, upsample_factor):        
-        """Solves the spin evolution for a given neutron path and updates a progress bar
+    def solve_spins(self, S0):        
+        """Solves the spin evolution for a all neutron paths and update a progress bar
+        saves the spin evolution and adiabaticities within the UCNpath instance
 
         Args:
             S0 (np.array[float]): initial spin vector
-            path (np.array[np.array[float]]): path of simulated neutron [path_x, path_y, path_z]
-            upsample_factor (int): number of times to increase resolution of the path
-
-        Returns:
-            np.array[np.array[float]] : path of simulated neutron with upsampling [path_x, path_y, path_z]
-            np.array[np.array[float]] : path evolution of spin vector [spin_x, spin_y, spin_z]
 
         """
-        # upsample path for smaller step size
-        path_fine = self.upsample_path(path, upsample_factor)
+        for path in self.UCNpaths:
+            arc_lengths = path.arc_lengths
+            # setup and solve spins iteratively
+            S = np.zeros((3, len(arc_lengths)))
+            S[:, 0] = S0
 
-        # get array of step positions along the path
-        arc_lengths = np.zeros(path_fine.shape[1])
-        for i in range(1, path_fine.shape[1]):
-            arc_lengths[i] = arc_lengths[i - 1] + np.linalg.norm(path_fine[:, i] - path_fine[:, i - 1])
+            # progress bar for solution
+            pbar = tqdm(total=len(arc_lengths), desc="Solving")
 
-        # interpolate the bloch equation along the path
-        interp_funcs = [interp1d(arc_lengths, path_fine[i], kind='linear', fill_value="extrapolate") for i in range(3)]
-        def get_pos(s):
-            return np.array([f(s) for f in interp_funcs])
-        def bloch_at(s, S):  # Bloch equation evaluated on arc-length
-            return self.bloch_eq(get_pos(s), S)
+            for i in range(1, len(arc_lengths)):
+                ds = arc_lengths[i] - arc_lengths[i - 1]
+                s_prev = arc_lengths[i - 1]
+                S_prev = S[:, i - 1]
 
-        # setup and solve spins iteratively
-        S = np.zeros((3, len(arc_lengths)))
-        S[:, 0] = S0
+                # get necessary Bfields
+                B_prev = path.Bfield_on_path[i - 1]
+                B_current = path.Bfield_on_path[i]
+                B_inter = (B_prev + B_current) / 2
 
-        # progress bar for solution
-        pbar = tqdm(total=len(arc_lengths), desc="Solving")
+                # RK4 step
+                k1 = self.bloch_eq(B_prev, S_prev)
+                k2 = self.bloch_eq(B_inter, S_prev + ds/2 * k1)
+                k3 = self.bloch_eq(B_inter, S_prev + ds/2 * k2)
+                k4 = self.bloch_eq(B_current, S_prev + ds * k3)
 
-        for i in range(1, len(arc_lengths)):
-            ds = arc_lengths[i] - arc_lengths[i - 1]
-            s_prev = arc_lengths[i - 1]
-            S_prev = S[:, i - 1]
+                pbar.update(1)
 
-            # RK4 step
-            k1 = bloch_at(s_prev, S_prev)
-            k2 = bloch_at(s_prev + ds/2, S_prev + ds/2 * k1)
-            k3 = bloch_at(s_prev + ds/2, S_prev + ds/2 * k2)
-            k4 = bloch_at(s_prev + ds, S_prev + ds * k3)
+                # RK4 evaluation by averaging slopes
+                S_next = S_prev + ds * (k1 + 2*k2 + 2*k3 + k4) / 6
+                S[:, i] = S_next / np.linalg.norm(S_next)
 
-            pbar.update(1)
-
-            # RK4 evaluation by averaging slopes
-            S_next = S_prev + ds * (k1 + 2*k2 + 2*k3 + k4) / 6
-            S[:, i] = S_next / np.linalg.norm(S_next)
-
-        return path_fine, S
+            path.save_spins(np.array(S))
     
     
-    def plot_spin_set(self, paths, spins, collisions_set, thetas, pdf_name="spin_plots.pdf"):
+    def plot_spin_set(self, pdf_name="spin_plots.pdf"):
         """Plots a graph of magnetic field experienced along the path
             and spin evolution as a function of path y component
             for a collection of paths and compiles them into a pdf
@@ -418,14 +191,17 @@ class UCNspinRotSim:
             thetas (np.array[float]): thetas corresponding to the path
 
         """
+
         with PdfPages(pdf_name) as pdf:
-            for i in range(len(paths)):
+            i = 0
+            for UCNpath in self.UCNpaths:
+                i += 1
                 fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
-                path = paths[i]
-                spin = spins[i]
-                collisions = collisions_set[i]
-                path_field = np.array([self.getField(path[:, j]) for j in range(path.shape[1])]).T
+                path = UCNpath.path
+                spin = UCNpath.spins
+                collisions = UCNpath.collisions
+                path_field = UCNpath.Bfield_on_path.T
 
                 ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
@@ -435,7 +211,7 @@ class UCNspinRotSim:
                 ax[0].grid(True)
                 ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
                 ax[0].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
-                ax[0].set_title(f"Path index: {i + 1} / {len(paths)} | θ = {thetas[i]:.2f} degrees", fontsize=22)
+                ax[0].set_title(f"Path index: {i} / {len(self.UCNpaths)} | θ = {UCNpath.theta:.2f} degrees", fontsize=22)
 
                 ax[1].plot(path[1], spin[0], label="Sx", color="red")
                 ax[1].plot(path[1], spin[1], label="Sy", color="blue")
@@ -446,7 +222,7 @@ class UCNspinRotSim:
                 ax[1].set_ylabel("Spin Components", fontsize=20)
                 ax[1].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
 
-                fig.suptitle(f"UCN Spin Evolution (Path {i + 1})", fontsize=16)
+                fig.suptitle(f"UCN Spin Evolution (Path {i})", fontsize=16)
                 pdf.savefig(fig)
                 plt.close(fig)
                 
