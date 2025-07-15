@@ -3,7 +3,6 @@ Simulates rotation of the spin vector of ultracold neutrons
 travelling through a 3D external guiding field 
 
 Code by Rylan Stutters
-Adapted from code by Libertad Barron Palos
 
 """
 
@@ -11,7 +10,7 @@ import UCNpath as path
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from scipy.interpolate import interp1d, RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator
 from tqdm import tqdm
 
 class UCNspinRotSim:
@@ -99,6 +98,7 @@ class UCNspinRotSim:
         for i in range(num_paths):
             newPath = path.UCNpath(v, D, yo, yf, upsample_factor)
             newPath.save_Bfield(self.B_interp_x, self.B_interp_y, self.B_interp_z)
+            newPath.calc_adiabaticity(self.gamma, v)
             UCNpaths.append(newPath)
 
         self.UCNpaths = np.array(UCNpaths)
@@ -196,12 +196,13 @@ class UCNspinRotSim:
             i = 0
             for UCNpath in self.UCNpaths:
                 i += 1
-                fig, ax = plt.subplots(2, 1, figsize=(12, 12))
+                fig, ax = plt.subplots(3, 1, figsize=(12, 12))
 
                 path = UCNpath.path
                 spin = UCNpath.spins
                 collisions = UCNpath.collisions
                 path_field = UCNpath.Bfield_on_path.T
+                adiabaticities = UCNpath.adiabaticities
 
                 ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
@@ -210,7 +211,6 @@ class UCNspinRotSim:
                 ax[0].legend()
                 ax[0].grid(True)
                 ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
-                ax[0].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
                 ax[0].set_title(f"Path index: {i} / {len(self.UCNpaths)} | θ = {UCNpath.theta:.2f} degrees", fontsize=22)
 
                 ax[1].plot(path[1], spin[0], label="Sx", color="red")
@@ -220,7 +220,13 @@ class UCNspinRotSim:
                 ax[1].legend()
                 ax[1].grid(True)
                 ax[1].set_ylabel("Spin Components", fontsize=20)
-                ax[1].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
+
+                ax[2].plot(path[1], adiabaticities, label="Adiabaticity", color="purple")
+                ax[2].set_yscale("log")
+                ax[2].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
+                ax[2].set_ylabel("Adiabaticity κ", fontsize=20)
+                ax[2].legend()
+                ax[2].grid(True)
 
                 fig.suptitle(f"UCN Spin Evolution (Path {i})", fontsize=16)
                 pdf.savefig(fig)

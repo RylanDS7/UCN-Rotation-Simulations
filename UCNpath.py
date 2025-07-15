@@ -3,6 +3,7 @@ Simulates the path of ultracold neutrons
 and associated values along that path
 
 Code by Rylan Stutters
+Adapted from code by Libertad Barron Palos
 
 """
 
@@ -192,11 +193,31 @@ class UCNpath:
         """
         self.spins = spins
 
-    def save_adiabaticity(self, adiabaticities):
+    def calc_adiabaticity(self, gamma, v):
         """saves the adiabaticities to self.adiabaticities
 
         Args:
-            adiabaticities (np.array[float]) : adiabaticity along path
+            gamma (float): gyromagnetic ratio
+            v (float): speed of the UCNs
 
         """
-        self.adiabaticities = adiabaticities
+        adiabaticities = [0]
+
+        for i in range(1, self.path.shape[1] - 1):
+            B_prev = self.Bfield_on_path[i - 1]
+            B_current = self.Bfield_on_path[i]
+            B_next = self.Bfield_on_path[i + 1]
+
+            ds_prev = self.arc_lengths[i] - self.arc_lengths[i - 1]
+            ds_next = self.arc_lengths[i + 1] - self.arc_lengths[i]
+
+            dB_ds = np.linalg.norm(B_next - B_prev) / (ds_prev + ds_next)
+            B = np.linalg.norm(B_current)
+            kappa = (gamma * B) / (v * dB_ds / B)
+
+            adiabaticities.append(kappa)
+
+        adiabaticities[0] = adiabaticities[1]
+        adiabaticities.append(adiabaticities[-1])
+
+        self.adiabaticities = np.array(adiabaticities)

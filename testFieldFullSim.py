@@ -17,7 +17,7 @@ yo = -3.6 # Starting y value
 yf = -1.3 # Ending y value
 upsample_factor = 40
 S0 = np.array([0, 0, 1])
-num_paths = 5
+num_paths = 3
 
 # import field data into B and pos
 pos = []
