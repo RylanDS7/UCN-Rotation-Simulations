@@ -111,21 +111,22 @@ def plot_field(x, B, kappa):
 results = []
 
 increment = 0
-for a in np.linspace(0.01, 0.00000001, 1000):
-    b = - 1/32 * np.log(50) - 8 * a
-    c = 3/16 * np.log(50) + 16 * a
-    x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, a, b, c, 0, 0, 0, 0, 0, 0, 0, 0.001)
-    kappa = calc_kappa(gamma, v, B, dB_dx)
-    results.append(np.array([a, b, c, np.min(kappa)]))
-    increment += 1
-    print(f"Done {increment} iterations")
+for a in np.linspace(0, 0, 1):
+    for b in np.linspace(0.1, 0.001, 10):
+        c = - 1/16 * np.log(50) - 48 * a - 8 *b
+        d = 1/2 * np.log(50) + 128 * a + 16 * b
+        x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, a, b, c, d, 0, 0, 0, 0, 0, 0, 0.001)
+        kappa = calc_kappa(gamma, v, B, dB_dx)
+        results.append(np.array([a, b, c, d, np.min(kappa)]))
+        increment += 1
+        print(f"Done {increment} iterations")
 
 results = np.array(results)
 
-max = np.max(results[:, 3])
-for index in np.where(results[:, 3] == max)[0]:
+max = np.max(results[:, 4])
+for index in np.where(results[:, 4] == max)[0]:
     print(results[index])
-    x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, results[index][0], results[index][1], results[index][2], 0, 0, 0, 0, 0, 0, 0, 0.0001)
+    x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, results[index][0], results[index][1], results[index][2], results[index][3], 0, 0, 0, 0, 0, 0, 0.0001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
     print(np.min(kappa))
     plot_field(x, B, kappa)
