@@ -12,24 +12,28 @@ A = 0.00005 # init amplitude of field
 v = 7  # Speed of neutrons in m/s
 gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 B0 = 10**(-6)  # Constant magnetic field in T in the z direction
-a = 10**(-6)
 
-def polynomial_field(A, B0, Po, P1, P2, Pf, a1, b1, c1, a2, b2, c2, dt):
-    """sets up the polynomial for the given parameters
+def exp_polynomial_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
+    """sets up the exponential polynomial function for the given parameters
 
     Args:
         A (float): Initial vertical field magnitude
         B0 (float): Constant magnetic field in T in the z direction
         Po (float): The x value that the field starts at
-        P1 (float): The x value that the first polynomial starts at
-        P2 (float): The x value that the second polynomial starts at
+        P1 (float): The x value that the first function starts at
+        P2 (float): The x value that the second function starts at
+        P2 (float): The x value that the second function ends at - constant B0
         Pf (float): The x value that the field ends at
-        a1 (float): parameter 1 of the first polynomial
-        b1 (float): parameter 2 of the first polynomial
-        c1 (float): parameter 3 of the first polynomial
-        a2 (float): parameter 1 of the second polynomial
-        b2 (float): parameter 2 of the second polynomial
-        c2 (float): parameter 3 of the second polynomial
+        a1 (float): parameter 1 of the first function
+        b1 (float): parameter 2 of the first function
+        c1 (float): parameter 3 of the first function
+        d1 (float): parameter 4 of the first function
+        e1 (float): parameter 5 of the first function
+        a2 (float): parameter 1 of the second function
+        b2 (float): parameter 2 of the second function
+        c2 (float): parameter 3 of the second function
+        d2 (float): parameter 4 of the second function
+        e2 (float): parameter 5 of the second function
         dt (float): the time step over which the condsider the field
 
     Returns:
@@ -39,7 +43,7 @@ def polynomial_field(A, B0, Po, P1, P2, Pf, a1, b1, c1, a2, b2, c2, dt):
 
     """
     # compile x values
-    x_vals = np.linspace(Po, Pf * 1.2, int(((Pf * 1.2) - Po) / dt))
+    x_vals = np.linspace(Po, Pf, int((Pf - Po) / dt))
 
     # init y values
     y_vals = np.zeros(len(x_vals))
@@ -49,12 +53,14 @@ def polynomial_field(A, B0, Po, P1, P2, Pf, a1, b1, c1, a2, b2, c2, dt):
             y_vals[i] = A
         elif (P1 < x_vals[i] <= P2): # second section
             x = x_vals[i] - P1
-            y_vals[i] = a1 * x**3 + b1 * x**2 + c1 * x + A
+            poly = a1 * x**4 + b1 * x**3 + c1 * x**2 + d1 * x + e1
+            y_vals[i] = A * np.exp(-poly)
             P2_index = i # tracks the switching index to P2
-        elif (P2 < x_vals[i] <= Pf): # third section
+        elif (P2 < x_vals[i] <= P3): # third section
             x = x_vals[i] - P2
-            y_vals[i] = a2 * x**3 + b2 * x**2 + c2 * x + y_vals[P2_index]
-        else:
+            poly = a2 * x**4 + b2 * x**3 + c2 * x**2 + d2 * x + e2
+            y_vals[i] = y_vals[P2_index] * np.exp(-poly)
+        elif (P3 < x_vals[i] <= Pf): # fourth section
             y_vals[i] = B0
 
     return x_vals, y_vals, np.gradient(y_vals, x_vals)
@@ -79,6 +85,8 @@ def calc_kappa(gamma, v, B, dB_dx):
             kappa[i] = 10**7
         else:
             kappa[i] = (gamma * B[i]) / (v * np.abs(dB_dx[i]) / B[i])
+            if kappa[i] > 10**7:
+                kappa[i] = 10**7
 
     return kappa
 
@@ -100,11 +108,32 @@ def plot_field(x, B, kappa):
 
     plt.show()
 
+results = []
+
+increment = 0
+for a in np.linspace(0.01, 0.00000001, 1000):
+    b = - 1/32 * np.log(50) - 8 * a
+    c = 3/16 * np.log(50) + 16 * a
+    x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, a, b, c, 0, 0, 0, 0, 0, 0, 0, 0.001)
+    kappa = calc_kappa(gamma, v, B, dB_dx)
+    results.append(np.array([a, b, c, np.min(kappa)]))
+    increment += 1
+    print(f"Done {increment} iterations")
+
+results = np.array(results)
+
+max = np.max(results[:, 3])
+for index in np.where(results[:, 3] == max)[0]:
+    print(results[index])
+    x, B, dB_dx = exp_polynomial_field(A, B0, 0, 1, 5, 5, 6, results[index][0], results[index][1], results[index][2], 0, 0, 0, 0, 0, 0, 0, 0.0001)
+    kappa = calc_kappa(gamma, v, B, dB_dx)
+    print(np.min(kappa))
+    plot_field(x, B, kappa)
 
 
-x, B, dB_dx = polynomial_field(A, B0, 0, 2, 3, 5, 59*a, -89*a, 0, -2*a, 12.75*a, -27*a, 0.001)
-kappa = calc_kappa(gamma, v, B, dB_dx)
-plot_field(x, B, kappa)
+
+
+
 
 
 
