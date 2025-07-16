@@ -32,7 +32,7 @@ def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2,
         Po (float): The x value that the field starts at
         P1 (float): The x value that the first function starts at
         P2 (float): The x value that the second function starts at
-        P2 (float): The x value that the second function ends at - constant B0
+        P3 (float): The x value that the second function ends at - constant B0
         Pf (float): The x value that the field ends at
         a1 (float): parameter 1 of the first function
         b1 (float): parameter 2 of the first function
@@ -68,8 +68,8 @@ def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2,
             P2_index = i # tracks the switching index to P2
         elif (P2 < x_vals[i] <= P3): # third section
             x = x_vals[i] - P2
-            poly = a2 * x**4 + b2 * x**3 + c2 * x**2 + d2 * x
-            y_vals[i] = y_vals[P2_index] * np.exp(-poly)
+            poly = a2 * x**5 + b2 * x**4 + c2 * x**3 + d2 * x**2 + e2 * x + 1
+            y_vals[i] = y_vals[P2_index] * poly
         elif (P3 < x_vals[i] <= Pf): # fourth section
             y_vals[i] = B0
 
@@ -106,6 +106,7 @@ def plot_field(x, B, kappa, lowest_kappa):
 
     ax[0].plot(x, B * 1e6, label="Bz", color="blue")
     ax[0].vlines([L1], -10, 50, label="L1", colors='green', linestyles='dotted')
+    ax[0].vlines([L2], -10, 50, label="L2", colors='yellow', linestyles='dotted')
     ax[0].vlines([L3], -10, 50, label="L3", colors='orange', linestyles='dotted')
     ax[0].vlines([L6], -10, 50, label="L6", colors='brown', linestyles='dotted')
     ax[0].legend()
@@ -114,6 +115,7 @@ def plot_field(x, B, kappa, lowest_kappa):
 
     ax[1].plot(x, kappa, label="Adiabaticity", color="purple")
     ax[1].vlines([L1], -10, 10**8, label="L1", colors='green', linestyles='dotted')
+    ax[1].vlines([L2], -10, 10**8, label="L2", colors='yellow', linestyles='dotted')
     ax[1].vlines([L3], -10, 10**8, label="L3", colors='orange', linestyles='dotted')
     ax[1].vlines([L6], -10, 10**8, label="L6", colors='brown', linestyles='dotted')
     ax[1].set_yscale("log")
@@ -126,17 +128,19 @@ def plot_field(x, B, kappa, lowest_kappa):
     plt.show()
 
 results = []
+dis1 = L2 - L1
+dis2 = L6 - L2
 
-for i in np.linspace(-20, -18, 20):
+for i in np.linspace(-41, -39, 5):
     a1s, b1s, c1s, d1s, e1s, x = symbols('a1s b1s c1s d1s e1s x')
 
     f1 = exp(-(x**5 * a1s + x**4 * b1s + x**3 * c1s + x**2 * d1s + x * e1s))
 
-    P1eq1 = Eq(f1.subs(x, 0.625), 1 / 50)
-    P1eq2 = Eq(diff(f1, x).subs(x, 0.625), 0)
-    P1eq3 = Eq(diff(diff(f1, x), x).subs(x, 0.625), 0)
+    P1eq1 = Eq(f1.subs(x, dis1), 2 / 50)
+    P1eq2 = Eq(diff(f1, x).subs(x, dis1), -0.1)
+    P1eq3 = Eq(diff(diff(f1, x), x).subs(x, dis1), 0)
     P1eq4 = Eq(diff(f1, x).subs(x, 0), i)
-    P1eq5 = Eq(diff(diff(diff(f1, x), x), x).subs(x, 0.625), 0)
+    P1eq5 = Eq(diff(diff(diff(f1, x), x), x).subs(x, dis1), 0)
 
     solution = solve((P1eq1, P1eq2, P1eq3, P1eq4, P1eq5), (a1s, b1s, c1s, d1s, e1s), dict=True)[0]
 
@@ -152,23 +156,53 @@ for i in np.linspace(-20, -18, 20):
     d1 = float(d1.evalf())
     e1 = float(e1.evalf())
 
-    x, B, dB_dx = def_field(A, B0, Lo, L1, L6, L6, Lf, a1, b1, c1, d1, e1, 0, 0, 0, 0, 0, 0.001)
+
+    a2s, b2s, c2s, d2s, e2s, x = symbols('a2s b2s c2s d2s e2s x')
+
+    f2 = 2 / 50 * (x**5 * a2s + x**4 * b2s + x**3 * c2s + x**2 * d2s + x * e2s + 1)
+
+    P2eq1 = Eq(f2.subs(x, dis2), 1 / 50)
+    P2eq2 = Eq(diff(f2, x).subs(x, dis2), 0)
+    P2eq3 = Eq(diff(diff(f2, x), x).subs(x, dis2), 0)
+    P2eq4 = Eq(diff(f2, x).subs(x, 0), -0.1)
+    P2eq5 = Eq(diff(diff(diff(f2, x), x), x).subs(x, dis2), 0)
+
+    solution = solve((P2eq1, P2eq2, P2eq3, P2eq4, P2eq5), (a2s, b2s, c2s, d2s, e2s), dict=True)[0]
+
+    a2 = solution[a2s]
+    b2 = solution[b2s]
+    c2 = solution[c2s]
+    d2 = solution[d2s]
+    e2 = solution[e2s]
+
+    a2 = float(a2.evalf())
+    b2 = float(b2.evalf())
+    c2 = float(c2.evalf())
+    d2 = float(d2.evalf())
+    e2 = float(e2.evalf())
+
+
+    x, B, dB_dx = def_field(A, B0, Lo, L1, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
-    results.append(np.array([a1, b1, c1, d1, e1, np.min(kappa)]))
+    results.append(np.array([a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, np.min(kappa), i]))
 
 results = np.array(results)
 
-max = np.max(results[:, 5])
-for index in np.where(results[:, 5] == max)[0]:
+max = np.max(results[:, 10])
+for index in np.where(results[:, 10] == max)[0]:
     print(results[index])
     a1 = results[index][0]
     b1 = results[index][1]
     c1 = results[index][2]
     d1 = results[index][3]
     e1 = results[index][4]
-    x, B, dB_dx = def_field(A, B0, Lo, L1, L6, L6, Lf, a1, b1, c1, d1, e1, 0, 0, 0, 0, 0, 0.001)
+    a2 = results[index][5]
+    b2 = results[index][6]
+    c2 = results[index][7]
+    d2 = results[index][8]
+    e2 = results[index][9]
+    x, B, dB_dx = def_field(A, B0, Lo, L1, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
-    print(np.min(kappa))
     plot_field(x, B, kappa, np.min(kappa))
 
 
