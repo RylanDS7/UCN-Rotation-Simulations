@@ -23,7 +23,7 @@ L5 = - 2.4 / 2
 L6 = - 2.25 / 2
 Lf = - 2 / 2
 
-def exp_polynomial_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
+def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
     """sets up the exponential polynomial function for the given parameters
 
     Args:
@@ -63,12 +63,12 @@ def exp_polynomial_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, 
             y_vals[i] = A
         elif (P1 < x_vals[i] <= P2): # second section
             x = x_vals[i] - P1
-            poly = a1 * x**4 + b1 * x**3 + c1 * x**2 + d1 * x + e1
-            y_vals[i] = A * np.exp(-poly)
+            poly = a1 * x**5 + b1 * x**4 + c1 * x**3 + d1 * x**2 + e1 * x
+            y_vals[i] = A * exp(-poly)
             P2_index = i # tracks the switching index to P2
         elif (P2 < x_vals[i] <= P3): # third section
             x = x_vals[i] - P2
-            poly = a2 * x**4 + b2 * x**3 + c2 * x**2 + d2 * x + e2
+            poly = a2 * x**4 + b2 * x**3 + c2 * x**2 + d2 * x
             y_vals[i] = y_vals[P2_index] * np.exp(-poly)
         elif (P3 < x_vals[i] <= Pf): # fourth section
             y_vals[i] = B0
@@ -101,7 +101,7 @@ def calc_kappa(gamma, v, B, dB_dx):
     return kappa
 
 
-def plot_field(x, B, kappa):
+def plot_field(x, B, kappa, lowest_kappa):
     fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
     ax[0].plot(x, B * 1e6, label="Bz", color="blue")
@@ -117,6 +117,7 @@ def plot_field(x, B, kappa):
     ax[1].vlines([L3], -10, 10**8, label="L3", colors='orange', linestyles='dotted')
     ax[1].vlines([L6], -10, 10**8, label="L6", colors='brown', linestyles='dotted')
     ax[1].set_yscale("log")
+    ax[1].text(-1.7, 10**4, f"Lowest Adiabaticity = {lowest_kappa:.3f}", fontsize=12, color='blue')
     ax[1].set_xlabel("Axial Position along the Path (m)", fontsize=20)
     ax[1].set_ylabel("Adiabaticity κ", fontsize=20)
     ax[1].legend()
@@ -126,77 +127,48 @@ def plot_field(x, B, kappa):
 
 results = []
 
-a1s, b1s, c1s, d1s = symbols('a1s b1s c1s d1s')
+for i in np.linspace(-20, -18, 20):
+    a1s, b1s, c1s, d1s, e1s, x = symbols('a1s b1s c1s d1s e1s x')
 
-x = 0.45
-x4, x3, x2 = x**4, x**3, x**2
+    f1 = exp(-(x**5 * a1s + x**4 * b1s + x**3 * c1s + x**2 * d1s + x * e1s))
 
-exponent = x**4 * a1s + x**3 * b1s + x**2 * c1s + x * d1s
-exp_expr = A * ln(-exponent)
-P1eq1 = Eq(exp_expr, A / 5)
-P1eq2 = Eq(A * (4*x3*a1s + 3*x2*b1s + 2*x*c1s + d1s) / exponent, -0.000005)
+    P1eq1 = Eq(f1.subs(x, 0.625), 1 / 50)
+    P1eq2 = Eq(diff(f1, x).subs(x, 0.625), 0)
+    P1eq3 = Eq(diff(diff(f1, x), x).subs(x, 0.625), 0)
+    P1eq4 = Eq(diff(f1, x).subs(x, 0), i)
+    P1eq5 = Eq(diff(diff(diff(f1, x), x), x).subs(x, 0.625), 0)
 
-solution = solve((P1eq1, P1eq2), (c1s, d1s), dict=True)[0]
+    solution = solve((P1eq1, P1eq2, P1eq3, P1eq4, P1eq5), (a1s, b1s, c1s, d1s, e1s), dict=True)[0]
 
-a1 = 0.01
-b1 = 0.01
-c1 = solution[c1s].subs({a1s: a1, b1s: b1})
-d1 = solution[d1s].subs({a1s: a1, b1s: b1})
+    a1 = solution[a1s]
+    b1 = solution[b1s]
+    c1 = solution[c1s]
+    d1 = solution[d1s]
+    e1 = solution[e1s]
 
-c1 = float(c1.evalf())
-d1 = float(d1.evalf())
+    a1 = float(a1.evalf())
+    b1 = float(b1.evalf())
+    c1 = float(c1.evalf())
+    d1 = float(d1.evalf())
+    e1 = float(e1.evalf())
 
-
-a2s, b2s, c2s, d2s = symbols('a2s b2s c2s d2s')
-
-x = 0.175
-x4, x3, x2 = x**4, x**3, x**2
-
-exponent = x**4 * a2s + x**3 * b2s + x**2 * c2s + x * d2s
-exp_expr = A / 5 * exp(-exponent)
-P2eq1 = Eq(exp_expr, A / 50)
-P2eq2 = Eq(-(4*x3*a2s + 3*x2*b2s + 2*x*c2s + d2s) * exp_expr, 0)
-
-solution = solve((P2eq1, P2eq2), (c2s, d2s), dict=True)[0]
-
-increment = 0
-for a2 in np.linspace(0.1, 0.01, 10):
-    for b2 in np.linspace(0.1, 0.001, 10):
-        c2 = solution[c2s].subs({a2s: a2, b2s: b2})
-        d2 = solution[d2s].subs({a2s: a2, b2s: b2})
-        c2 = float(c2.evalf())
-        d2 = float(d2.evalf())
-
-        x, B, dB_dx = exp_polynomial_field(A, B0, Lo, L1, L3, L6, Lf, a1, b1, c1, d1, 0, a2, b2, c2, d2, 0, 0.001)
-        kappa = calc_kappa(gamma, v, B, dB_dx)
-        results.append(np.array([a1, b1, c1, d1, a2, b2, c2, d2, np.min(kappa)]))
-        increment += 1
-        print(f"Done {increment} iterations")
+    x, B, dB_dx = def_field(A, B0, Lo, L1, L6, L6, Lf, a1, b1, c1, d1, e1, 0, 0, 0, 0, 0, 0.001)
+    kappa = calc_kappa(gamma, v, B, dB_dx)
+    results.append(np.array([a1, b1, c1, d1, e1, np.min(kappa)]))
 
 results = np.array(results)
 
-max = np.max(results[:, 8])
-for index in np.where(results[:, 8] == max)[0]:
+max = np.max(results[:, 5])
+for index in np.where(results[:, 5] == max)[0]:
     print(results[index])
     a1 = results[index][0]
     b1 = results[index][1]
     c1 = results[index][2]
     d1 = results[index][3]
-    a2 = results[index][4]
-    b2 = results[index][5]
-    c2 = results[index][6]
-    d2 = results[index][7]
-    x, B, dB_dx = exp_polynomial_field(A, B0, Lo, L1, L3, L6, Lf, a1, b1, c1, d1, 0, a2, b2, c2, d2, 0, 0.001)
+    e1 = results[index][4]
+    x, B, dB_dx = def_field(A, B0, Lo, L1, L6, L6, Lf, a1, b1, c1, d1, e1, 0, 0, 0, 0, 0, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
     print(np.min(kappa))
-    plot_field(x, B, kappa)
-
-
-
-
-
-
-
-
+    plot_field(x, B, kappa, np.min(kappa))
 
 
