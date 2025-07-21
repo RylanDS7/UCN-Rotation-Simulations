@@ -211,9 +211,9 @@ class UCNpath:
             ds_prev = self.arc_lengths[i] - self.arc_lengths[i - 1]
             ds_next = self.arc_lengths[i + 1] - self.arc_lengths[i]
 
-            dB_ds = np.linalg.norm(B_next - B_prev) / (ds_prev + ds_next)
+            dB_ds = (B_next - B_prev) / (ds_prev + ds_next)
             B = np.linalg.norm(B_current)
-            kappa = (gamma * B) / (v * dB_ds / B)
+            kappa = (gamma * B**3) / (v * np.linalg.norm(np.cross(dB_ds, B_current)))
 
             adiabaticities.append(kappa)
 
