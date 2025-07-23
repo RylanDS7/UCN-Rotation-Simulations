@@ -9,11 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
 
-A = 0.00005 # init amplitude of field
+A = 0.00003 # init amplitude of field
 v = 7  # Speed of neutrons in m/s
 gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 B0 = 10**(-6)  # Constant magnetic field in T in the z direction
 
+# Layer distances
 Lo = - 3.75 / 2
 L1 = - 3.5 / 2
 L2 = - 3 / 2
@@ -22,6 +23,16 @@ L4 = - 2.55 / 2
 L5 = - 2.4 / 2
 L6 = - 2.25 / 2
 Lf = - 2 / 2
+
+f_P0 = A * 1000000 # value at Lo
+f_P2 = 2 # value at L2
+ff_P2 = -0.09 # derivative at L2
+
+# iterative values for the slope at Lo
+lower_bound = -20
+upper_bound = -40
+increments = 20
+
 
 def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
     """sets up the exponential polynomial function for the given parameters
@@ -131,13 +142,13 @@ results = []
 dis1 = L2 - L1
 dis2 = L6 - L2
 
-for i in np.linspace(-41, -39, 5):
+for i in np.linspace(lower_bound, upper_bound, increments):
     a1s, b1s, c1s, d1s, e1s, x = symbols('a1s b1s c1s d1s e1s x')
 
     f1 = exp(-(x**5 * a1s + x**4 * b1s + x**3 * c1s + x**2 * d1s + x * e1s))
 
-    P1eq1 = Eq(f1.subs(x, dis1), 2 / 50)
-    P1eq2 = Eq(diff(f1, x).subs(x, dis1), -0.1)
+    P1eq1 = Eq(f1.subs(x, dis1), f_P2 / f_P0)
+    P1eq2 = Eq(diff(f1, x).subs(x, dis1), ff_P2)
     P1eq3 = Eq(diff(diff(f1, x), x).subs(x, dis1), 0)
     P1eq4 = Eq(diff(f1, x).subs(x, 0), i)
     P1eq5 = Eq(diff(diff(diff(f1, x), x), x).subs(x, dis1), 0)
@@ -159,12 +170,12 @@ for i in np.linspace(-41, -39, 5):
 
     a2s, b2s, c2s, d2s, e2s, x = symbols('a2s b2s c2s d2s e2s x')
 
-    f2 = 2 / 50 * (x**5 * a2s + x**4 * b2s + x**3 * c2s + x**2 * d2s + x * e2s + 1)
+    f2 = f_P2 / f_P0 * (x**5 * a2s + x**4 * b2s + x**3 * c2s + x**2 * d2s + x * e2s + 1)
 
-    P2eq1 = Eq(f2.subs(x, dis2), 1 / 50)
+    P2eq1 = Eq(f2.subs(x, dis2), 1 / f_P0)
     P2eq2 = Eq(diff(f2, x).subs(x, dis2), 0)
     P2eq3 = Eq(diff(diff(f2, x), x).subs(x, dis2), 0)
-    P2eq4 = Eq(diff(f2, x).subs(x, 0), -0.1)
+    P2eq4 = Eq(diff(f2, x).subs(x, 0), ff_P2)
     P2eq5 = Eq(diff(diff(diff(f2, x), x), x).subs(x, dis2), 0)
 
     solution = solve((P2eq1, P2eq2, P2eq3, P2eq4, P2eq5), (a2s, b2s, c2s, d2s, e2s), dict=True)[0]
@@ -204,5 +215,7 @@ for index in np.where(results[:, 10] == max)[0]:
     x, B, dB_dx = def_field(A, B0, Lo, L1, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
     plot_field(x, B, kappa, np.min(kappa))
+
+    np.savetxt('starting_field.txt', B, fmt='%f', delimiter=',')
 
 
