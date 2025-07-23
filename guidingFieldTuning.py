@@ -27,12 +27,12 @@ Lf = - 2 / 2
 f_P0 = A * 1000000 # value at Lo
 f_P2 = 2 # value at L2
 f_Pf = B0 * 1000000 # value at Lf
-ff_P2 = -0.09 # derivative at L2
+ff_P2 = -0.1 # derivative at L2
 
 # iterative values for the slope at Lo
-lower_bound = -20
-upper_bound = -40
-increments = 20
+lower_bound = -39
+upper_bound = -41
+increments = 5
 
 
 def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
