@@ -26,6 +26,7 @@ Lf = - 2 / 2
 
 f_P0 = A * 1000000 # value at Lo
 f_P2 = 2 # value at L2
+f_Pf = B0 * 1000000 # value at Lf
 ff_P2 = -0.09 # derivative at L2
 
 # iterative values for the slope at Lo
@@ -71,18 +72,18 @@ def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2,
 
     for i in range(len(x_vals)):
         if (Po <= x_vals[i] <= P1): # first section
-            y_vals[i] = A
+            y_vals[i] = f_P0
         elif (P1 < x_vals[i] <= P2): # second section
             x = x_vals[i] - P1
             poly = a1 * x**5 + b1 * x**4 + c1 * x**3 + d1 * x**2 + e1 * x
-            y_vals[i] = A * exp(-poly)
+            y_vals[i] = f_P0 * exp(-poly)
             P2_index = i # tracks the switching index to P2
         elif (P2 < x_vals[i] <= P3): # third section
             x = x_vals[i] - P2
             poly = a2 * x**5 + b2 * x**4 + c2 * x**3 + d2 * x**2 + e2 * x + 1
             y_vals[i] = y_vals[P2_index] * poly
         elif (P3 < x_vals[i] <= Pf): # fourth section
-            y_vals[i] = B0
+            y_vals[i] = f_Pf
 
     return x_vals, y_vals, np.gradient(y_vals, x_vals)
 
@@ -100,6 +101,8 @@ def calc_kappa(gamma, v, B, dB_dx):
         np.array[float]: The adiabaticities at each point
 
     """
+    B = 10**(-6) * B
+    dB_dx = 10**(-6) * dB_dx
     kappa = np.zeros(len(B))
     for i in range(len(B)):
         if (np.abs(dB_dx[i]) == 0 or B[i] == A):
@@ -115,7 +118,7 @@ def calc_kappa(gamma, v, B, dB_dx):
 def plot_field(x, B, kappa, lowest_kappa):
     fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
-    ax[0].plot(x, B * 1e6, label="Bz", color="blue")
+    ax[0].plot(x, B, label="Bz", color="blue")
     ax[0].vlines([L1], -10, 50, label="L1", colors='green', linestyles='dotted')
     ax[0].vlines([L2], -10, 50, label="L2", colors='yellow', linestyles='dotted')
     ax[0].vlines([L3], -10, 50, label="L3", colors='orange', linestyles='dotted')
