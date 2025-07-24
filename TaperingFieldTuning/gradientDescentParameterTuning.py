@@ -152,3 +152,5 @@ dy_dx = np.gradient(y_vals, x_vals)
 kappa = calc_kappa(gamma, v, y_vals, dy_dx)
 plot_field(x_vals, y_vals, kappa, np.min(kappa))
 
+np.savetxt('gradDescentField.txt', np.array([x_vals, y_vals]).T, fmt='%f', delimiter=',')
+

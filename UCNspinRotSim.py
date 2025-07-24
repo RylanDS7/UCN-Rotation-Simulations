@@ -133,7 +133,8 @@ class UCNspinRotSim:
             float : the result of the bloch equation as ds_dr
 
         """
-        dS_dt = self.gamma * np.cross(S, B)
+        B = B
+        dS_dt = self.gamma * np.cross(S, B) * 10**(-6)
         return dS_dt / self.v # Normalize by velocity since dy = v * dt
         
 
@@ -207,7 +208,7 @@ class UCNspinRotSim:
                 ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
                 ax[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")
-                ax[0].vlines(collisions[:,1], 0, 400, label="Collisions", colors='yellow', linestyles='dotted')
+                ax[0].vlines(collisions[:,1], 0, 30, label="Collisions", colors='yellow', linestyles='dotted')
                 ax[0].legend()
                 ax[0].grid(True)
                 ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)

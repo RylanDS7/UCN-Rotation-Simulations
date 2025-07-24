@@ -174,7 +174,6 @@ class UCNpath:
             Bx_val = Bx_interp(pos)
             By_val = By_interp(pos)
             Bz_val = Bz_interp(pos)
-
             return np.array([Bx_val, By_val, Bz_val]).flatten()
     
         Bfield = []
@@ -213,7 +212,11 @@ class UCNpath:
 
             dB_ds = (B_next - B_prev) / (ds_prev + ds_next)
             B = np.linalg.norm(B_current)
-            kappa = (gamma * B**3) / (v * np.linalg.norm(np.cross(dB_ds, B_current)))
+
+            if np.linalg.norm(dB_ds) >= 10**(-8):
+                kappa = (gamma * B**3) / (v * np.linalg.norm(np.cross(dB_ds, B_current)))
+            else:
+                kappa = 10**7
 
             adiabaticities.append(kappa)
 
