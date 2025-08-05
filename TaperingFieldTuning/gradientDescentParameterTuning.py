@@ -15,7 +15,7 @@ gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 B0 = 1  # Constant magnetic field in uT in the z direction
 
 # MSR layer distances
-L0 = - 3.75 / 2
+L0 = - 4 / 2
 L1 = - 3.5 / 2
 L2 = - 3 / 2
 L3 = - 2.6 / 2
@@ -23,6 +23,7 @@ L4 = - 2.55 / 2
 L5 = - 2.4 / 2
 L6 = - 2.25 / 2
 Lf = - 2 / 2
+flge = L1 - 0.12897 # flange location
 
 def adiabaticity_of_field(x):
     """sets up the exponential polynomial function for the given parameters
@@ -53,9 +54,9 @@ def generate_field(parameters):
         ndarray[float]: The field values at each point
 
     """
-    N = 1400
+    N = 2000
 
-    function_x = np.linspace(0, L6-L1, 1000)
+    function_x = np.linspace(0, L6-flge, N)
     y = np.zeros(len(function_x))
 
     poly = 0
@@ -71,10 +72,11 @@ def generate_field(parameters):
             poly += params[p] * (function_x[i]**(p+1))
         y[i] = A * np.exp(poly)
 
-    front_y = A * np.ones(200)
-    back_y = np.ones(200)
+    sample_rate = N / (L6 - flge)
+    front_y = A * np.ones(int((flge - L0) * (sample_rate)))
+    back_y = np.ones(int((Lf - L6) * (sample_rate)))
 
-    x_vals = np.linspace(L0, Lf, N)
+    x_vals = np.linspace(L0, Lf, len(y) + len(front_y) + len(back_y))
     y_vals = np.concatenate((front_y, y, back_y))
 
     return x_vals, y_vals
@@ -111,6 +113,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
     ax[0].plot(x, B, label="Bz", color="blue")
+    ax[0].vlines([flge], -10, 50, label="Flange", colors='black', linestyles='dotted')
     ax[0].vlines([L1], -10, 50, label="L1", colors='green', linestyles='dotted')
     ax[0].vlines([L2], -10, 50, label="L2", colors='yellow', linestyles='dotted')
     ax[0].vlines([L3], -10, 50, label="L3", colors='orange', linestyles='dotted')
@@ -120,6 +123,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
 
     ax[1].plot(x, kappa, label="Adiabaticity", color="purple")
+    ax[1].vlines([flge], -10, 50, label="Flange", colors='black', linestyles='dotted')
     ax[1].vlines([L1], -10, 10**8, label="L1", colors='green', linestyles='dotted')
     ax[1].vlines([L2], -10, 10**8, label="L2", colors='yellow', linestyles='dotted')
     ax[1].vlines([L3], -10, 10**8, label="L3", colors='orange', linestyles='dotted')
@@ -146,6 +150,7 @@ res = scipy.optimize.minimize(adiabaticity_of_field, x0,
 
 
 print(adiabaticity_of_field(res.x))
+print(res.x)
 
 x_vals, y_vals = generate_field(res.x)
 dy_dx = np.gradient(y_vals, x_vals)

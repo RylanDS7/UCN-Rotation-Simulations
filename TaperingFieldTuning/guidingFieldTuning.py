@@ -15,7 +15,7 @@ gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 B0 = 10**(-6)  # Constant magnetic field in T in the z direction
 
 # Layer distances
-Lo = - 3.75 / 2
+Lo = - 4 / 2
 L1 = - 3.5 / 2
 L2 = - 3 / 2
 L3 = - 2.6 / 2
@@ -23,6 +23,7 @@ L4 = - 2.55 / 2
 L5 = - 2.4 / 2
 L6 = - 2.25 / 2
 Lf = - 2 / 2
+flge = L1 - 0.12897
 
 f_P0 = A * 1000000 # value at Lo
 f_P2 = 2 # value at L2
@@ -30,9 +31,9 @@ f_Pf = B0 * 1000000 # value at Lf
 ff_P2 = -0.1 # derivative at L2
 
 # iterative values for the slope at Lo
-lower_bound = -39
-upper_bound = -41
-increments = 5
+lower_bound = -70
+upper_bound = -70
+increments = 1
 
 
 def def_field(A, B0, Po, P1, P2, P3, Pf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, dt):
@@ -142,7 +143,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     plt.show()
 
 results = []
-dis1 = L2 - L1
+dis1 = L2 - flge
 dis2 = L6 - L2
 
 for i in np.linspace(lower_bound, upper_bound, increments):
@@ -196,9 +197,10 @@ for i in np.linspace(lower_bound, upper_bound, increments):
     e2 = float(e2.evalf())
 
 
-    x, B, dB_dx = def_field(A, B0, Lo, L1, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
+    x, B, dB_dx = def_field(A, B0, Lo, flge, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
     results.append(np.array([a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, np.min(kappa), i]))
+    print("Done")
 
 results = np.array(results)
 
@@ -215,10 +217,8 @@ for index in np.where(results[:, 10] == max)[0]:
     c2 = results[index][7]
     d2 = results[index][8]
     e2 = results[index][9]
-    x, B, dB_dx = def_field(A, B0, Lo, L1, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
+    x, B, dB_dx = def_field(A, B0, Lo, flge, L2, L6, Lf, a1, b1, c1, d1, e1, a2, b2, c2, d2, e2, 0.001)
     kappa = calc_kappa(gamma, v, B, dB_dx)
     plot_field(x, B, kappa, np.min(kappa))
 
     np.savetxt('starting_field.txt', B, fmt='%f', delimiter=',')
-
-
