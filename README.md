@@ -1,4 +1,4 @@
-# UCN-Rotation-Simulations
+# UCN Rotation Simulations
 Simulations for the spin vector evolution of random ultracold neutron (UCN) paths under a given magnetic field's influence. The class UCNspinRotSim is used for the main simulation.
 
 ## UCN Spin Simulation
