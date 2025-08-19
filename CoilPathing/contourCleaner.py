@@ -1,6 +1,6 @@
 """
-Cleans txt files containing contour points
-for importing to SolidWorks
+Cleans exported COMSOL txt files containing 
+contour points so they can be imported to SolidWorks
 
 Code by Rylan Stutters
 
@@ -41,7 +41,6 @@ df_e = pd.read_csv(StringIO(edge_str), delim_whitespace=True, header=None)
 df_p = df_p.mul(1000)
 
 point_order = df_e.iloc[:,0] - 1
-print(point_order.to_list())
 df_p = df_p.reindex(point_order)
 
 # Save cleaned output
