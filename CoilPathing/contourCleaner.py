@@ -10,7 +10,7 @@ import pandas as pd
 import re
 from io import StringIO
 
-input_file = "\TestCoil-C1.txt"
+input_file = "\TestCoil-C4.txt"
 path = "CoilPathing\Contours_in" + input_file
 
 
