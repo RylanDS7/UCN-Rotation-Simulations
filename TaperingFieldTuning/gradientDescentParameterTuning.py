@@ -25,6 +25,17 @@ L6 = - 2.25 / 2
 Lf = - 2 / 2
 flge = L1 - 0.12897 # flange location
 
+# Shift to set zero at flange
+L0 -= flge
+L1 -= flge
+L2 -= flge
+L3 -= flge
+L4 -= flge
+L5 -= flge
+L6 -= flge
+Lf -= flge
+flge = 0
+
 def adiabaticity_of_field(x):
     """sets up the exponential polynomial function for the given parameters
 
@@ -129,7 +140,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     ax[1].vlines([L3], -10, 10**8, label="L3", colors='orange', linestyles='dotted')
     ax[1].vlines([L6], -10, 10**8, label="L6", colors='brown', linestyles='dotted')
     ax[1].set_yscale("log")
-    ax[1].text(-1.7, 10**4, f"Lowest Adiabaticity = {lowest_kappa:.3f}", fontsize=12, color='blue')
+    ax[1].text(0.4, 10**4, f"Lowest Adiabaticity = {lowest_kappa:.3f}", fontsize=12, color='blue')
     ax[1].set_xlabel("Axial Position along the Path (m)", fontsize=20)
     ax[1].set_ylabel("Adiabaticity κ", fontsize=20)
     ax[1].legend()
@@ -138,7 +149,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     plt.show()
 
 
-x0 = [1, -1, -1, 1, 1]
+x0 = [-0.5, 3, -1, -2, -1]
 
 def callbackF(xk):
     print(f"Current kappa: {1 / adiabaticity_of_field(xk)}")
