@@ -106,7 +106,8 @@ class UCNspinRotSim:
 
 
     def getField(self, pos):
-        """Retrieve the field at a position using the grid interpolator
+        """Retrieve the field at a position using the grid interpolator -
+            valeus in uT
 
         Args:
             pos (np.array[float]): current position of particle, [pos_x, pos_y, pos_z]
@@ -126,13 +127,14 @@ class UCNspinRotSim:
         """The bloch equation
 
         Args:
-            B (np.array[float]): current Bfield vector [Bx, By, Bz]
+            B (np.array[float]): current Bfield vector (uT) [Bx, By, Bz]
             S (np.array[float]): current spin vector [S_x, S_y, S_z]
 
         Returns:
             float : the result of the bloch equation as ds_dr
 
         """
+        B = 10**(-6) * B
         dS_dt = self.gamma * np.cross(S, B)
         return dS_dt / self.v # Normalize by velocity since dy = v * dt
         
@@ -192,7 +194,9 @@ class UCNspinRotSim:
 
         """
 
-        with PdfPages(pdf_name) as pdf:
+        file_name = "UCNspinSim/" + pdf_name
+
+        with PdfPages(file_name) as pdf:
             i = 0
             for UCNpath in self.UCNpaths:
                 i += 1
@@ -204,10 +208,10 @@ class UCNspinRotSim:
                 path_field = UCNpath.Bfield_on_path.T
                 adiabaticities = UCNpath.adiabaticities
 
-                ax[0].plot(path[1], path_field[0] * 1e6, label="Bx", color="blue")
-                ax[0].plot(path[1], path_field[1] * 1e6, label="By", color="orange")
-                ax[0].plot(path[1], path_field[2] * 1e6, label="Bz", color="green")
-                ax[0].vlines(collisions[:,1], 0, 400, label="Collisions", colors='yellow', linestyles='dotted')
+                ax[0].plot(path[1], path_field[0], label="Bx", color="blue")
+                ax[0].plot(path[1], path_field[1], label="By", color="orange")
+                ax[0].plot(path[1], path_field[2], label="Bz", color="green")
+                ax[0].vlines(collisions[:,1], 0, 40, label="Collisions", colors='yellow', linestyles='dotted')
                 ax[0].legend()
                 ax[0].grid(True)
                 ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)

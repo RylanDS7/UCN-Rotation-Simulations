@@ -120,7 +120,7 @@ class UCNpath:
 
         while yo <= position[1] <= yf:  # Keep particle within tube bounds
             # Check if the particle is still within the tube before updating
-            if position[1] + velocity[1] * dt > 0:
+            if position[1] + velocity[1] * dt > yf:
                 # If particle would exceed tube length, stop the simulation
                 break
             
@@ -161,7 +161,8 @@ class UCNpath:
 
 
     def save_Bfield(self, Bx_interp, By_interp, Bz_interp):
-        """saves the Bfield to self.Bfield_on_path give interpolators for the magnetic field
+        """saves the Bfield to self.Bfield_on_path give interpolators for the magnetic field -
+            valeus saved in uT
 
         Args:
             Bx_interp (RegularGridInterpolator): Interpolator for Bx
@@ -204,9 +205,9 @@ class UCNpath:
         adiabaticities = [0]
 
         for i in range(1, self.path.shape[1] - 1):
-            B_prev = self.Bfield_on_path[i - 1]
-            B_current = self.Bfield_on_path[i]
-            B_next = self.Bfield_on_path[i + 1]
+            B_prev = self.Bfield_on_path[i - 1] * 10**(-6)
+            B_current = self.Bfield_on_path[i] * 10**(-6)
+            B_next = self.Bfield_on_path[i + 1] * 10**(-6)
 
             ds_prev = self.arc_lengths[i] - self.arc_lengths[i - 1]
             ds_next = self.arc_lengths[i + 1] - self.arc_lengths[i]
