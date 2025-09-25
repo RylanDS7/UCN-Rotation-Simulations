@@ -181,6 +181,23 @@ class UCNspinRotSim:
             path.save_spins(np.array(S))
     
     
+    def paths_above_spin_threshold(self, threshold):
+        """Returns the fraction of ending spin values
+            of the set of paths that are above the
+            given threshold
+
+        Args:
+            threshold (float): threshold value of S_z to compare against
+
+        """
+        count = 0
+        for path in self.UCNpaths:
+            if path.spins[2][-1] > threshold:
+                count += 1
+
+        return count / len(self.UCNpaths)
+
+
     def plot_spin_set(self, pdf_name="spin_plots.pdf"):
         """Plots a graph of magnetic field experienced along the path
             and spin evolution as a function of path y component
@@ -221,6 +238,7 @@ class UCNspinRotSim:
                 ax[1].plot(path[1], spin[1], label="Sy", color="blue")
                 ax[1].plot(path[1], spin[2], label="Sz", color="green")
                 ax[1].vlines(collisions[:,1], -1, 1, label="Collisions", colors='yellow', linestyles='dotted')
+                ax[1].text(0.5, 0.8, f"Ending Sz = {spin[2][-1]:.3f}", fontsize=12, color='blue')
                 ax[1].legend()
                 ax[1].grid(True)
                 ax[1].set_ylabel("Spin Components", fontsize=20)
@@ -228,7 +246,7 @@ class UCNspinRotSim:
                 ax[2].plot(path[1], adiabaticities, label="Adiabaticity", color="purple")
                 ax[2].set_yscale("log")
                 ax[2].set_xlabel("Axial Position of the Path: y (m)", fontsize=20)
-                ax[2].set_ylabel("Adiabaticity κ", fontsize=20)
+                ax[2].set_ylabel("Adiabaticity α", fontsize=20)
                 ax[2].legend()
                 ax[2].grid(True)
 
