@@ -67,4 +67,4 @@ print(sim.paths_above_spin_threshold(0.95))
 # sim.plot_spin_set(pdf_name="OptimalSpinEvo.pdf")
 
 # save the ending spins
-sim.save_end_spins()
+sim.save_end_state()

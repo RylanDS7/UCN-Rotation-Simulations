@@ -257,15 +257,22 @@ class UCNspinRotSim:
                 plt.close(fig)
 
 
-    def save_end_spins(self):
-        """Saves ending spin values as a csv
+    def save_end_state(self):
+        """Saves ending simulation state as a csv
 
         """
-        ending_spins = []
-        for UCNpath in self.UCNpaths:
-            ending_spins.append(UCNpath.spins[2][-1])
+        lines = []
 
-        with open("UCNspinSim/spins.csv", "w", newline="") as f:
+        for UCNpath in self.UCNpaths:
+            ending_spin = UCNpath.spins[2][-1]
+            theta = UCNpath.theta
+            collision_count = len(UCNpath.collisions)
+            min_adiabaticity = min(UCNpath.adiabaticities)
+
+            lines.append([ending_spin, theta, collision_count, min_adiabaticity])
+
+        with open("UCNspinSim/sim.csv", "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(ending_spins)
+            writer.writerow(["Ending Spin", "Theta", "Collision Count", "Min Adiabaticity"])
+            writer.writerows(lines)
                 

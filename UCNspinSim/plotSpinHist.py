@@ -7,9 +7,12 @@ Sep 2025
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
-spins = np.loadtxt("UCNspinSim/spins.csv", delimiter=",")
+sim = pd.read_csv("UCNspinSim/sim.csv")
 
-plt.hist(spins, 5)
+bins = np.linspace(0.85, 1, 16)
+print(sim["Ending Spin"])
+plt.hist(sim["Ending Spin"], bins=bins)
 plt.show()
