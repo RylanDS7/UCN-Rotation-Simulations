@@ -18,7 +18,7 @@ yo = -0.4 # Starting y value
 yf = 0.9 # Ending y value
 upsample_factor = 40
 S0 = np.array([0, 0, 1])
-num_paths = 1
+num_paths = 10
 
 # B function coefficients
 a_1 = -20.146
@@ -64,4 +64,7 @@ sim.solve_spins(S0)
 print(sim.paths_above_spin_threshold(0.95))
 
 # plot output data
-sim.plot_spin_set(pdf_name="OptimalSpinEvo1.pdf")
+# sim.plot_spin_set(pdf_name="OptimalSpinEvo.pdf")
+
+# save the ending spins
+sim.save_end_spins()

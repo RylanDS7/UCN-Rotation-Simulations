@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.interpolate import RegularGridInterpolator
 from tqdm import tqdm
+import csv
 
 class UCNspinRotSim:
     """Class for running UCN spin polarization simulations
@@ -95,11 +96,16 @@ class UCNspinRotSim:
 
         """
         UCNpaths = []
+
+        # progress bar for path simulation
+        pbar = tqdm(total=num_paths, desc="Generating paths")
+
         for i in range(num_paths):
             newPath = path.UCNpath(v, D, yo, yf, upsample_factor)
             newPath.save_Bfield(self.B_interp_x, self.B_interp_y, self.B_interp_z)
             newPath.calc_adiabaticity(self.gamma, v)
             UCNpaths.append(newPath)
+            pbar.update(1)
 
         self.UCNpaths = np.array(UCNpaths)
 
@@ -147,14 +153,16 @@ class UCNspinRotSim:
             S0 (np.array[float]): initial spin vector
 
         """
+        # progress bar for solution
+        pbar = tqdm(total=len(self.UCNpaths), desc="Solving spins")
+
         for path in self.UCNpaths:
             arc_lengths = path.arc_lengths
             # setup and solve spins iteratively
             S = np.zeros((3, len(arc_lengths)))
             S[:, 0] = S0
 
-            # progress bar for solution
-            pbar = tqdm(total=len(arc_lengths), desc="Solving")
+            
 
             for i in range(1, len(arc_lengths)):
                 ds = arc_lengths[i] - arc_lengths[i - 1]
@@ -172,13 +180,13 @@ class UCNspinRotSim:
                 k3 = self.bloch_eq(B_inter, S_prev + ds/2 * k2)
                 k4 = self.bloch_eq(B_current, S_prev + ds * k3)
 
-                pbar.update(1)
 
                 # RK4 evaluation by averaging slopes
                 S_next = S_prev + ds * (k1 + 2*k2 + 2*k3 + k4) / 6
                 S[:, i] = S_next / np.linalg.norm(S_next)
 
             path.save_spins(np.array(S))
+            pbar.update(1)
     
     
     def paths_above_spin_threshold(self, threshold):
@@ -202,12 +210,6 @@ class UCNspinRotSim:
         """Plots a graph of magnetic field experienced along the path
             and spin evolution as a function of path y component
             for a collection of paths and compiles them into a pdf
-
-        Args:
-            path (np.array[np.array[np.array[float]]]): paths of simulated neutron [path_x, path_y, path_z]
-            spin (np.array[np.array[np.array[float]]]): path evolutions of spin vectors [spin_x, spin_y, spin_z]
-            collisions_set (np.array[np.array[np.array[float]]]) : collision locations along the paths
-            thetas (np.array[float]): thetas corresponding to the path
 
         """
 
@@ -253,4 +255,17 @@ class UCNspinRotSim:
                 fig.suptitle(f"UCN Spin Evolution (Path {i})", fontsize=16)
                 pdf.savefig(fig)
                 plt.close(fig)
+
+
+    def save_end_spins(self):
+        """Saves ending spin values as a csv
+
+        """
+        ending_spins = []
+        for UCNpath in self.UCNpaths:
+            ending_spins.append(UCNpath.spins[2][-1])
+
+        with open("UCNspinSim/spins.csv", "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(ending_spins)
                 
