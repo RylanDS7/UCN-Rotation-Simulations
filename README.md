@@ -1,5 +1,5 @@
 # UCN Rotation Simulations
-Simulations for the spin vector evolution of random ultracold neutron (UCN) paths under a given magnetic field's influence. The class UCNspinRotSim is used for the main simulation.
+Simulations for the spin vector evolution of random ultracold neutron (UCN) paths under a given magnetic field's influence. The class UCNspinRotSim is used for the main simulation which is located in the UCNspinSim folder.
 
 ## UCN Spin Simulation
 This set of scipts includes the UCNpath class which generates neutron paths and the UCNspinRotSim class which solves the spin evolution for a given UCN path and a specified magnetic vector field. Initializing an instance of UCNspinRotSim will automatically construct a list of UCNpath instances and save them as a class attribute. An example of how to use the UCNspinRotSim class is demonstrated in testFieldFullSim.py
@@ -17,5 +17,13 @@ Things to note about how the simulation functions:
 
 ## Tapering Field Tuning
 
-The TaperingFieldTuning folder contains scipts that were used to optimize the function which is used to generate the spin tapering field. These scripts optimize function under different assumptions to maximize the lowest adiabaticity value reached by the function.
+The TaperingFieldTuning folder contains scipts that were used to optimize the function which is used to generate the spin tapering field. These scripts optimize the function under different assumptions either analytically or using gradient descent to maximize the lowest adiabaticity value reached by the function.
+
+## Coil Pathing
+
+The CoilPathing folder contains scripts to clean and generate contours which can be used as the wire paths for magnetic coils that can produce some field.
+
+- contourCleaner.py converts a contour exported from COMSOL into a list of ordered points
+
+- TXTtoSketch.bas can be run as a SolidWorks macro to take this list of ordered points and turn it into a 3D sketch of the contour
 
