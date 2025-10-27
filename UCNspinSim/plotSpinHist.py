@@ -12,9 +12,6 @@ import matplotlib.pyplot as plt
 
 sim = pd.read_csv("UCNspinSim/sim.csv")
 
-sim["Probability"] = (1 + sim["Ending Spin"])/2
-print(sim["Probability"].mean())
-
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
 plt.rcParams.update({'font.size': 14})
 
@@ -32,4 +29,3 @@ axes[1].set_ylabel("Sz", fontsize=15)
 axes[1].grid()
 
 plt.show()
-
