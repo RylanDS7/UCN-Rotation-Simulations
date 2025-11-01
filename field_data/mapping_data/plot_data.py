@@ -45,6 +45,11 @@ df['dBz (V)'] = df['dBz (V)'] * 10
 df = df.rename(columns={'Bx (V)': 'Bx (uT)', 'By (V)': 'By (uT)', 'Bz (V)': 'Bz (uT)', 'dBx (V)': 'dBx (uT)', 'dBy (V)': 'dBy (uT)', 'dBz (V)': 'dBz (uT)', 'pos': 'pos (cm)'})
 df = df.drop(columns='orientation', axis=1)
 
+# convert to MSR coordinates
+df = df.rename(columns={'By (uT)': 'Bz (uT)', 'Bz (uT)': 'By (uT)', 'dBy (uT)': 'dBz (uT)', 'dBz (uT)': 'dBy (uT)'})
+df['Bx (uT)'] = -df['Bx (uT)']
+df['Bz (uT)'] = -df['Bz (uT)']
+
 # export cleaned data
 df.to_csv("field_data\mapping_data\cleanedSouthWallField.csv", index=False)
 
@@ -52,12 +57,12 @@ plt.errorbar(df['pos (cm)'], df['Bx (uT)'], xerr=0.2, yerr = df['dBx (uT)'], fmt
 plt.errorbar(df['pos (cm)'], df['By (uT)'], xerr=0.2, yerr = df['dBy (uT)'], fmt='.', label='By', color='green')
 plt.errorbar(df['pos (cm)'], df['Bz (uT)'], xerr=0.2, yerr = df['dBz (uT)'], fmt='.', label='Bz', color='orange')
 
-plt.vlines([120-0, 120-7.5, 120-15, 120-17.5, 120-37.5, 120-62.5], -25, 75, label="MSR Layers", colors='green', linestyles='dotted')
-plt.vlines([120-75.397], -25, 75, label="Coil Start", colors='blue', linestyles='dotted')
+plt.vlines([120-0, 120-7.5, 120-15, 120-17.5, 120-37.5, 120-62.5], -75, 50, label="MSR Layers", colors='green', linestyles='dotted')
+plt.vlines([120-75.397], -75, 50, label="Coil Start", colors='blue', linestyles='dotted')
 
 # Add labels, legend, and title
 plt.xlim(125, -5)
-plt.ylim(-25, 75)
+plt.ylim(-75, 50)
 plt.xlabel('Axial Position (y) (cm)', fontsize='16')
 plt.ylabel('B (uT)', fontsize='16')
 plt.grid()
