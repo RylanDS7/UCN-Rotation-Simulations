@@ -57,11 +57,13 @@ df_p["iso"] = df_i
 contours = []
 for level in isolevels:
     df = df_p[df_p['iso'] == level]
-    print(df)
     df = df.drop('iso', axis=1)
     contours.append(df)
 
-print(contours[3])
+# close contours
+for i in range(len(contours)):
+    closing_point = contours[i].iloc[0]
+    contours[i] = pd.concat([contours[i], closing_point.to_frame().T], ignore_index=True)
 
 # Save cleaned contours
 os.mkdir("CoilPathing\Contours_out" + input_file)
