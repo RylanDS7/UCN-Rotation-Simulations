@@ -40,7 +40,11 @@ for line in lines:
     By = float(line[4])
     Bz = float(line[5])
 
-    # artifically add 1uT uniform field
+    # artificially add 34uT starting field
+    if y <= 0:
+        Bz = 34
+
+    # artificially add 1uT uniform field
     Bz += 1
 
     pos.append([x, y, z])
