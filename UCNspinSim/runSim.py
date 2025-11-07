@@ -17,6 +17,7 @@ yo = -0.15 # Starting y value
 yf = 0.9 # Ending y value
 upsample_factor = 40
 S0 = np.array([0, 0, 1])
+filename = "taperV2Field"
 num_paths = 3
 
 # import field data into B and pos
@@ -25,7 +26,7 @@ B = []
 lines = []
 
 # read space seperated data from txt file
-with open('field_data/DoubleCoilField.txt', 'r') as file:
+with open('field_data/' + filename + '.txt', 'r') as file:
     for line in file:
         elements = line.split()
         if elements[0] != '%': 
@@ -40,12 +41,13 @@ for line in lines:
     By = float(line[4])
     Bz = float(line[5])
 
-    # artificially add 34uT starting field
-    if y <= 0:
-        Bz = 34
+    # artificially add 30uT starting field
+    if y <= 0.03:
+        Bz = 30
 
     # artificially add 1uT uniform field
-    Bz += 1
+    if y >= 0.75:
+        Bz = 1
 
     pos.append([x, y, z])
     B.append([Bx, By, Bz])
@@ -56,4 +58,4 @@ sim = ucn.UCNspinRotSim(gamma, [np.array(pos), np.array(B)], num_paths, v, D, yo
 sim.solve_spins(S0)
 
 # plot output data
-sim.plot_spin_set(pdf_name="spin_plots1.pdf")
+sim.plot_spin_set(pdf_name="spin_plots_" + filename + ".pdf")
