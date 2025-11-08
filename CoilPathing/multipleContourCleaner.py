@@ -12,8 +12,8 @@ import re
 from io import StringIO
 import os
 
-input_file = "\contourTest"
-path = "CoilPathing\Contours_in" + input_file + ".txt"
+input_file = "taperV2inner"
+path = "CoilPathing\\Contours_in\\" + input_file + ".txt"
 
 
 points = []
@@ -66,8 +66,8 @@ for i in range(len(contours)):
     contours[i] = pd.concat([contours[i], closing_point.to_frame().T], ignore_index=True)
 
 # Save cleaned contours
-os.mkdir("CoilPathing\Contours_out" + input_file)
+os.mkdir("CoilPathing\\Contours_out\\" + input_file)
 i = 0
 for contour in contours:
-    contour.to_csv("CoilPathing\Contours_out" + input_file + f"\C-{i}", index=False, sep=",", float_format="%f", header=False)
+    contour.to_csv("CoilPathing\\Contours_out\\" + input_file + "\\" + input_file + f"-C-{i}", index=False, sep=",", float_format="%f", header=False)
     i += 1
