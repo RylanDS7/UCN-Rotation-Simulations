@@ -18,7 +18,7 @@ yf = 0.9 # Ending y value
 upsample_factor = 40
 S0 = np.array([0, 0, 1])
 filename = "taperV2Field"
-num_paths = 3
+num_paths = 20
 
 # import field data into B and pos
 pos = []

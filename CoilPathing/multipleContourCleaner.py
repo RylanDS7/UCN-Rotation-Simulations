@@ -12,7 +12,7 @@ import re
 from io import StringIO
 import os
 
-input_file = "taperV2inner"
+input_file = "taperV2outer"
 path = "CoilPathing\\Contours_in\\" + input_file + ".txt"
 
 
