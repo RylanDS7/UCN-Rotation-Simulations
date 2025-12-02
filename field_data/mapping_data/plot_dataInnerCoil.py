@@ -48,7 +48,7 @@ df = df.drop(columns='orientation', axis=1)
 df = df.rename(columns={'By (uT)': 'Bz (uT)', 'Bz (uT)': 'By (uT)', 'dBy (uT)': 'dBz (uT)', 'dBz (uT)': 'dBy (uT)'})
 
 # export cleaned data
-df.to_csv("field_data\mapping_data\cleanedSouthWallField.csv", index=False)
+df.to_csv("field_data\mapping_data\cleanedInnerCoilMSR3.csv", index=False)
 
 plt.errorbar(df['pos (cm)'], df['Bx (uT)'], xerr=0.2, yerr = df['dBx (uT)'], fmt='.', label='Bx', color='blue')
 plt.errorbar(df['pos (cm)'], df['By (uT)'], xerr=0.2, yerr = df['dBy (uT)'], fmt='.', label='By', color='green')
@@ -63,7 +63,7 @@ plt.ylim(-55, 50)
 plt.xlabel('Axial Position (y) (cm)', fontsize='16')
 plt.ylabel('B (uT)', fontsize='16')
 plt.grid()
-plt.title('MSR South UCN Port Inner Coil Magnetic Fields (0.1A)', fontsize='16')
+plt.title('MSR South UCN Port Inner Coil Magnetic Fields (0A)', fontsize='16')
 plt.legend()
 
 # Show the plot
