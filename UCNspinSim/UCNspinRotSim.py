@@ -233,28 +233,29 @@ class UCNspinRotSim:
                 ax[0].plot(path[1], path_field[0], label="Bx", color="blue")
                 ax[0].plot(path[1], path_field[1], label="By", color="orange")
                 ax[0].plot(path[1], path_field[2], label="Bz", color="green")
-                ax[0].vlines(collisions[:,1], 0, 40, label="Collisions", colors='grey', linestyles='dotted')
-                ax[0].legend(loc='lower left')
+                # ax[0].vlines(collisions[:,1], 0, 40, label="Collisions", colors='grey', linestyles='dotted')
+                ax[0].legend(loc='lower left', fontsize=20)
                 ax[0].grid(True)
-                ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
+                ax[0].set_ylabel("Magnetic Field (μT)", fontsize=24)
                 if not display:
                     ax[0].set_title(f"Path index: {i} / {len(self.UCNpaths)} | θ = {UCNpath.theta:.2f} degrees", fontsize=22)
 
                 ax[1].plot(path[1], spin[0], label="Sx", color="red")
                 ax[1].plot(path[1], spin[1], label="Sy", color="blue")
                 ax[1].plot(path[1], spin[2], label="Sz", color="green")
-                ax[1].vlines(collisions[:,1], -1, 1, label="Collisions", colors='grey', linestyles='dotted')
+                # ax[1].vlines(collisions[:,1], -1, 1, label="Collisions", colors='grey', linestyles='dotted')
+                ax[1].set_ylim(-1.1, 1.1)
                 if not display:
                     ax[1].text(0.5, 0.8, f"Ending Sz = {spin[2][-1]:.3f}", fontsize=12, color='blue')
-                ax[1].legend(loc='lower left')
+                ax[1].legend(loc='lower left', fontsize=20)
                 ax[1].grid(True)
-                ax[1].set_ylabel("Spin Components", fontsize=20)
+                ax[1].set_ylabel("Spin Components", fontsize=24)
 
                 ax[2].plot(path[1], adiabaticities, label="Adiabaticity", color="purple")
                 ax[2].set_yscale("log")
-                ax[2].set_xlabel("Axial Position Along UCN Path: y (m)", fontsize=20)
-                ax[2].set_ylabel("Adiabaticity α", fontsize=20)
-                ax[2].legend(loc='lower left')
+                ax[2].set_xlabel("Axial Position Along UCN Path: y (m)", fontsize=24)
+                ax[2].set_ylabel("Adiabaticity α", fontsize=24)
+                ax[2].legend(loc='lower left', fontsize=20)
                 ax[2].grid(True)
 
                 if not display:

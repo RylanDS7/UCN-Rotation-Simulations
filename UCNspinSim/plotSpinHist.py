@@ -12,20 +12,28 @@ import matplotlib.pyplot as plt
 
 sim = pd.read_csv("UCNspinSim/sim.csv")
 
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
-plt.rcParams.update({'font.size': 14})
+# fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 4))
+plt.rcParams.update({'font.size': 18})
+
+# bins = np.linspace(0.75, 1, 51)
+# axes[0].hist(sim["Ending Spin"], bins=bins)
+# axes[0].set_title("Ending Vertical Spin Componenet (Sz)")
+# axes[0].set_xlabel("Sz", fontsize=15)
+# axes[0].set_ylabel("Number of UCN", fontsize=15)
+# axes[0].grid()
+
+# axes[1].scatter(sim["Theta"], sim["Ending Spin"], s=6)
+# axes[1].set_title("Ending Vertical Spin Componenet (Sz) \nvs Initial Path Angle (theta)")
+# axes[1].set_xlabel("Theta", fontsize=15)
+# axes[1].set_ylabel("Sz", fontsize=15)
+# axes[1].grid()
+
+fig, ax = plt.subplots()
 
 bins = np.linspace(0.75, 1, 51)
-axes[0].hist(sim["Ending Spin"], bins=bins)
-axes[0].set_title("Ending Vertical Spin Componenet (Sz)")
-axes[0].set_xlabel("Sz", fontsize=15)
-axes[0].set_ylabel("Number of UCN", fontsize=15)
-axes[0].grid()
-
-axes[1].scatter(sim["Theta"], sim["Ending Spin"], s=6)
-axes[1].set_title("Ending Vertical Spin Componenet (Sz) \nvs Initial Path Angle (theta)")
-axes[1].set_xlabel("Theta", fontsize=15)
-axes[1].set_ylabel("Sz", fontsize=15)
-axes[1].grid()
+ax.hist(sim["Ending Spin"], bins=bins)
+ax.set_xlabel("$S_z$", fontsize=22)
+ax.set_ylabel("Number of UCN", fontsize=22)
+ax.grid()
 
 plt.show()
