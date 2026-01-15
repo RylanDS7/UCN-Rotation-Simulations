@@ -63,7 +63,7 @@ plt.ylim(-55, 50)
 plt.xlabel('Axial Position (y) (cm)', fontsize='16')
 plt.ylabel('B (uT)', fontsize='16')
 plt.grid()
-plt.title('MSR South UCN Port Inner Coil Magnetic Fields (0A)', fontsize='16')
+plt.title('MSR South UCN Port Inner Coil Magnetic Fields (0.1A)', fontsize='16')
 plt.legend()
 
 # Show the plot

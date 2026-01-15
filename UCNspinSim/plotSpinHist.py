@@ -28,12 +28,12 @@ plt.rcParams.update({'font.size': 18})
 # axes[1].set_ylabel("Sz", fontsize=15)
 # axes[1].grid()
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(10,8))
 
 bins = np.linspace(0.75, 1, 51)
 ax.hist(sim["Ending Spin"], bins=bins)
-ax.set_xlabel("$S_z$", fontsize=22)
-ax.set_ylabel("Number of UCN", fontsize=22)
+ax.set_xlabel("Ending Vertical Spin Component ($S_z$)", fontsize=24)
+ax.set_ylabel("Number of UCN", fontsize=24)
 ax.grid()
 
 plt.show()
