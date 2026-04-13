@@ -183,6 +183,20 @@ class UCNpath:
         for i in range(self.path.shape[1]):
             Bfield.append(getField(self.path[:,i]))
 
+        # artifically add starting and ending field, comment out if not required
+        for i in range(len(Bfield) - 1):
+            if Bfield[i+1][2] - Bfield[i][2] < 0 and Bfield[i][2] <= 30 and self.path[1][i] > 0:
+                break
+            else:
+                Bfield[i][2] = 30
+
+        for i in reversed(range(len(Bfield))):
+            if Bfield[i][2] < 1:
+                Bfield[i][2] = 1
+            else:
+                break 
+
+
         self.Bfield_on_path = np.array(Bfield)
 
     def save_spins(self, spins):

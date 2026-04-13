@@ -264,7 +264,7 @@ class UCNspinRotSim:
                 plt.close(fig)
 
 
-    def save_end_state(self):
+    def save_end_state(self, filename="sim"):
         """Saves ending simulation state as a csv
 
         """
@@ -278,7 +278,7 @@ class UCNspinRotSim:
 
             lines.append([ending_spin, theta, collision_count, min_adiabaticity])
 
-        with open("UCNspinSim/sim.csv", "w", newline="") as f:
+        with open("UCNspinSim/" + filename + ".csv", "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["Ending Spin", "Theta", "Collision Count", "Min Adiabaticity"])
             writer.writerows(lines)

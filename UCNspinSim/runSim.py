@@ -18,7 +18,7 @@ yf = 0.9 # Ending y value
 upsample_factor = 40
 S0 = np.array([0, 0, 1])
 filename = "taperV2Field"
-num_paths = 20
+num_paths = 3000
 
 # import field data into B and pos
 pos = []
@@ -41,21 +41,13 @@ for line in lines:
     By = float(line[4])
     Bz = float(line[5])
 
-    # artificially add 30uT starting field
-    if y <= 0.03:
-        Bz = 30
-
-    # artificially add 1uT uniform field
-    if y >= 0.75:
-        Bz = 1
-
     pos.append([x, y, z])
     B.append([Bx, By, Bz])
-    
 
 # run simulation
 sim = ucn.UCNspinRotSim(gamma, [np.array(pos), np.array(B)], num_paths, v, D, yo, yf, upsample_factor)
 sim.solve_spins(S0)
 
 # plot output data
+sim.save_end_state(filename="taperV2spins")
 sim.plot_spin_set(pdf_name="spin_plots_" + filename + ".pdf")
