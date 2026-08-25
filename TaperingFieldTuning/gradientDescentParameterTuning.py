@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
 
-A = 30 # initial field value in uT
+A = 5 # initial field value in uT
 v = 7  # Speed of neutrons in m/s
 gamma = 1.832e8  # Gyromagnetic ratio for neutrons in rad/s/T
 B0 = 1  # Constant magnetic field in uT in the z direction
@@ -23,7 +23,7 @@ L4 = - 2.55 / 2
 L5 = - 2.4 / 2
 L6 = - 2.25 / 2
 Lf = - 2 / 2
-flge = L1 - 0.12897 # flange location
+flge = L1 - 0.12 # flange location
 
 # Shift to set zero at flange
 L0 -= flge
@@ -123,12 +123,15 @@ def calc_kappa(gamma, v, B, dB_dx):
 def plot_field(x, B, kappa, lowest_kappa):
     fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
+    min_val = -3
+    max_val = 8
+
     ax[0].plot(x, B, label="Bz", color="blue")
-    ax[0].vlines([flge], -10, 50, label="Flange", colors='black', linestyles='dotted')
-    ax[0].vlines([L1], -10, 50, label="L1", colors='green', linestyles='dotted')
-    ax[0].vlines([L2], -10, 50, label="L2", colors='yellow', linestyles='dotted')
-    ax[0].vlines([L3], -10, 50, label="L3", colors='orange', linestyles='dotted')
-    ax[0].vlines([L6], -10, 50, label="L6", colors='brown', linestyles='dotted')
+    ax[0].vlines([flge], min_val, max_val, label="Flange", colors='black', linestyles='dotted')
+    ax[0].vlines([L1], min_val, max_val, label="L1", colors='green', linestyles='dotted')
+    ax[0].vlines([L2], min_val, max_val, label="L2", colors='yellow', linestyles='dotted')
+    ax[0].vlines([L3], min_val, max_val, label="L3", colors='orange', linestyles='dotted')
+    ax[0].vlines([L6], min_val, max_val, label="L6", colors='brown', linestyles='dotted')
     ax[0].legend()
     ax[0].grid(True)
     ax[0].set_ylabel("Magnetic Field (μT)", fontsize=20)
@@ -149,7 +152,7 @@ def plot_field(x, B, kappa, lowest_kappa):
     plt.show()
 
 
-x0 = [-0.5, 3, -1, -2, -1]
+x0 = [-0.5, 2]
 
 def callbackF(xk):
     print(f"Current kappa: {1 / adiabaticity_of_field(xk)}")
